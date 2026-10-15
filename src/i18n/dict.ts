@@ -73,7 +73,7 @@ const es = {
   dropzone: {
     title: 'Arrastra tu EPUB o PDF aquí',
     hint: 'o pulsa para elegir un archivo desde tu dispositivo',
-    chip: (mb: number) => `EPUB o PDF con texto seleccionable · hasta ${mb} MB`,
+    chip: (mb: number) => `EPUB o PDF con texto seleccionable · hasta ${mb}\u00a0MB`,
     aria: 'Seleccionar documento EPUB o PDF',
   },
 
@@ -317,7 +317,7 @@ const en: Dict = {
   dropzone: {
     title: 'Drag your EPUB or PDF here',
     hint: 'or click to choose a file from your device',
-    chip: (mb: number) => `EPUB or PDF with selectable text · up to ${mb} MB`,
+    chip: (mb: number) => `EPUB or PDF with selectable text · up to ${mb}\u00a0MB`,
     aria: 'Select an EPUB or PDF document',
   },
 

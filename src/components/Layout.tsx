@@ -59,11 +59,13 @@ export function Layout() {
   const footerLink = 'min-h-[44px] content-center text-ink-soft hover:text-brand';
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-ink">
+    <div className="flex min-h-screen flex-col bg-cream text-ink">
       <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow">
         {t.skipToContent}
       </a>
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        {/* Filete con el degradado del logo: solo decorativo. */}
+        <div className="h-1 bg-brand-gradient" aria-hidden="true" />
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
           <Link to={href('home')} className="mr-auto flex min-h-[44px] items-center gap-2 rounded-lg font-semibold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             {/* Decorativo: el nombre al lado ya lo describe. */}

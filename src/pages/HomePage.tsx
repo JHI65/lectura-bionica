@@ -17,7 +17,8 @@ export function HomePage() {
 
   return (
     <>
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:pt-16">
+      <section className="hero-wash">
+       <div className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:pt-16">
         <div className="max-w-3xl space-y-4">
           <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-sm font-medium text-brand">{h.eyebrow}</p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">{h.h1}</h1>
@@ -44,6 +45,7 @@ export function HomePage() {
             ))}
           </p>
         </figure>
+       </div>
       </section>
 
       <section aria-labelledby="how-title" className="border-y border-slate-200 bg-white py-16">

@@ -58,6 +58,22 @@ Decisiones relevantes:
 - **Anuncios.** Política única en `src/lib/state/ads.ts`: sin consentimiento de publicidad no se carga **ningún** script de anuncios (ni «no personalizados»: en la UE también usan cookies y requieren consentimiento); Premium verificado nunca ve anuncios; sin identificadores válidos no hay anuncios en producción; en desarrollo aparece un placeholder marcado como tal. Hueco reservado de 280 px para evitar saltos de diseño, siempre fuera del texto leído y lejos de los controles.
 - **Analítica.** Solo con consentimiento y a un endpoint propio (`VITE_ANALYTICS_ENDPOINT`). Los parámetros pasan por una lista blanca: nunca nombres de archivo, texto ni contenido de libros.
 
+## Paleta
+
+Derivada del logo (libro pastel). Está definida en `tailwind.config.js`:
+
+| Token | Valor | Uso |
+|---|---|---|
+| `brand` | `#3c62df` (hover `#234cd5`, soft `#ecf0fd`) | Botones, enlaces, estado activo |
+| `violet` | `#844dcb` | Acento secundario |
+| `coral` | `#ca2f44` | Acento cálido |
+| `cream` | `#faf8f5` | Fondo de página |
+| `ink` | `#171b36` (soft `#4b506c`) | Texto |
+| `slate` | Neutros con tinte pervinca | Bordes y fondos |
+| `brand-gradient` | Cielo → pervinca → violeta → rosa | Solo decorativo |
+
+Los pasteles del logo no tienen contraste suficiente para texto, así que cada tono tiene una versión profunda con ≥ 4,5:1 sobre blanco, crema y su propio fondo claro. Cualquier color nuevo debe pasar esa comprobación; la batería de accesibilidad (axe-core) la verifica.
+
 ## Idiomas
 
 La web está en español (raíz) y en inglés (`/en/`). El idioma lo decide la URL: no hay redirección automática por el idioma del navegador y el selector está siempre visible.

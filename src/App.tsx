@@ -2,13 +2,14 @@ import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { HomePage } from './pages/HomePage';
-import { PremiumPage } from './pages/PremiumPage';
 import { GuidePage, LegalPage, NotFoundPage } from './pages/ContentPages';
 import { SEO_PAGES } from './content/seo-pages';
 import { LEGAL_DOCS } from './content/legal';
+import { config } from './lib/state/config';
 
 // El conversor (epub.js, pdf.js) y la cuenta se cargan solo cuando se visitan.
 const ConvertPage = lazy(() => import('./pages/ConvertPage').then((m) => ({ default: m.ConvertPage })));
+const PremiumPage = lazy(() => import('./pages/PremiumPage').then((m) => ({ default: m.PremiumPage })));
 const AccountPage = lazy(() => import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })));
 
 function RouteFallback() {
@@ -26,8 +27,8 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="convertir" element={<ConvertPage />} />
-        <Route path="premium" element={<PremiumPage />} />
-        <Route path="cuenta" element={<AccountPage />} />
+        {config.premiumEnabled && <Route path="premium" element={<PremiumPage />} />}
+        {config.premiumEnabled && <Route path="cuenta" element={<AccountPage />} />}
         {SEO_PAGES.map((page) => (
           <Route key={page.path} path={page.path.slice(1)} element={<GuidePage />} />
         ))}

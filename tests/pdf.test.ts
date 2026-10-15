@@ -57,3 +57,46 @@ describe('exportación PDF', () => {
     expect(result.warnings.some((w) => w.includes('sustituido'))).toBe(true);
   });
 });
+
+describe('PDF exportado: contenido, tamaño y memoria', () => {
+  it('el texto exportado se puede volver a extraer (la negrita no parte las palabras)', async () => {
+    const doc = (await parseDocument(fileOf(await makeTextPdf(SAMPLE_LINES)))) as PdfDocument;
+    const result = await exportDocument(doc, { ...DEFAULT_SETTINGS, boldRatio: 0.5 });
+    const again = (await parseDocument(fileOf(await result.blob.arrayBuffer(), 'salida.pdf'))) as PdfDocument;
+    const text = again.sections.flatMap((s) => s.blocks.map((b) => b.text)).join(' ');
+    expect(text).toContain('canción, niño, camión');
+    expect(text).toContain('Introducción al tema');
+    expect(text).toContain('extracción de texto seleccionable');
+  });
+
+  it('conserva tildes, ñ, comillas tipográficas y paréntesis escapados correctamente', async () => {
+    const doc = (await parseDocument(fileOf(await makeTextPdf(SAMPLE_LINES)))) as PdfDocument;
+    doc.sections[0].blocks.push({ kind: 'paragraph', text: 'Prueba (con paréntesis) y barra \\ además de “comillas” y € en el texto del documento.' });
+    const result = await exportDocument(doc, DEFAULT_SETTINGS);
+    const again = (await parseDocument(fileOf(await result.blob.arrayBuffer(), 'salida.pdf'))) as PdfDocument;
+    const text = again.sections.flatMap((s) => s.blocks.map((b) => b.text)).join(' ');
+    expect(text).toContain('(con paréntesis)');
+    expect(text).toContain('“comillas”');
+    expect(text).toContain('€');
+  });
+
+  it('un documento largo ocupa poco: el contenido va comprimido', async () => {
+    const paragraph = 'La lectura personalizable permite ajustar el formato del texto para que cada persona lo encuentre cómodo. ';
+    const blocks = Array.from({ length: 800 }, () => ({ kind: 'paragraph' as const, text: paragraph.repeat(2) }));
+    const doc: PdfDocument = {
+      kind: 'pdf',
+      title: 'Largo',
+      fileName: 'largo.pdf',
+      warnings: [],
+      pageCount: 1,
+      extractedChars: 1,
+      sections: [{ id: 'p1', title: 'Página 1', blocks }],
+    };
+    const result = await exportDocument(doc, DEFAULT_SETTINGS);
+    const reopened = await PDFDocument.load(new Uint8Array(await result.blob.arrayBuffer()));
+    const pages = reopened.getPageCount();
+    expect(pages).toBeGreaterThan(30);
+    // Antes del cambio: ~26 KB por página. Comprimido, debe quedar muy por debajo.
+    expect(result.blob.size / pages).toBeLessThan(6 * 1024);
+  });
+});

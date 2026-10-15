@@ -109,6 +109,7 @@ export function HomePage() {
         </div>
       </section>
 
+      {config.premiumEnabled && (
       <section aria-labelledby="premium-title" className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid gap-8 rounded-3xl bg-ink p-8 text-white sm:p-12 md:grid-cols-[1fr_auto] md:items-center">
           <div className="space-y-3">
@@ -124,6 +125,7 @@ export function HomePage() {
           </Link>
         </div>
       </section>
+      )}
 
       <section aria-labelledby="privacy-title" className="mx-auto max-w-6xl px-4 pb-16">
         <div className={`${card} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>

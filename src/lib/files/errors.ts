@@ -13,6 +13,8 @@ export type ConversionErrorCode =
   | 'PDF_NO_TEXT'
   | 'EXPORT_FAILED'
   | 'EXPORT_VERIFY_FAILED'
+  | 'RESOURCE_LIMIT'
+  | 'CANCELLED'
   | 'UNKNOWN';
 
 const MESSAGES: Record<ConversionErrorCode, string> = {
@@ -28,6 +30,9 @@ const MESSAGES: Record<ConversionErrorCode, string> = {
     'Este PDF no contiene texto seleccionable: parece un escaneo o una imagen. Necesita OCR antes de poder transformarse. No se ha generado ningún resultado.',
   EXPORT_FAILED: 'No se pudo generar el archivo transformado. Inténtalo de nuevo.',
   EXPORT_VERIFY_FAILED: 'El archivo generado no ha superado la comprobación de integridad, así que no se ha descargado.',
+  RESOURCE_LIMIT:
+    'El documento es demasiado grande o complejo para procesarlo en este dispositivo. Prueba con un archivo más pequeño o cierra otras pestañas.',
+  CANCELLED: 'Operación cancelada.',
   UNKNOWN: 'Ha ocurrido un error inesperado al procesar el documento.',
 };
 
@@ -41,12 +46,16 @@ export class ConversionError extends Error {
   }
 }
 
-export function userMessage(code: ConversionErrorCode): string {
-  return MESSAGES[code];
-}
-
 export function toConversionError(error: unknown, fallback: ConversionErrorCode = 'UNKNOWN'): ConversionError {
   if (error instanceof ConversionError) return error;
+  if (isResourceError(error)) return new ConversionError('RESOURCE_LIMIT');
   const detail = error instanceof Error ? error.message : undefined;
   return new ConversionError(fallback, detail);
+}
+
+/** Fallos de memoria o de tamaño de buffer, que en navegadores aparecen como RangeError. */
+export function isResourceError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error instanceof RangeError) return true;
+  return /out of memory|allocation failed|invalid (array|string) length|memory/i.test(error.message);
 }

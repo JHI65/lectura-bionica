@@ -1,12 +1,13 @@
 // Lectura de EPUB con epub.js: metadatos, índice, orden de lectura (spine)
 // y contenido de cada capítulo. El contenido se sanitiza antes de salir de aquí.
 
-import ePub from 'epubjs';
 import JSZip from 'jszip';
 import { ConversionError } from '../files/errors';
 import { sanitizeTree } from '../html/sanitize';
 import { removeBionicMarkup } from '../html/transform';
 import type { EpubDocument, EpubSection } from '../document';
+import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import { disposeBook, openBook, type EpubBook } from './book';
 import { extensionOf, resolveZipPath } from './paths';
 
 const IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
@@ -68,16 +69,18 @@ function firstHeading(body: Element): string | null {
   return text ? text.slice(0, 120) : null;
 }
 
-export async function parseEpub(buffer: ArrayBuffer, fileName: string): Promise<EpubDocument> {
+export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: TaskOptions = {}): Promise<EpubDocument> {
+  const { signal, onProgress } = options;
+  const yieldToUi = createYielder();
+  throwIfAborted(signal);
   const zip = await JSZip.loadAsync(buffer).catch(() => {
     throw new ConversionError('EPUB_INVALID', 'no es un contenedor ZIP legible');
   });
   await assertEpubStructure(zip);
 
-  let book: ReturnType<typeof ePub>;
+  let book: EpubBook;
   try {
-    book = ePub(buffer);
-    await book.ready;
+    book = await openBook(buffer);
   } catch (error) {
     throw new ConversionError('EPUB_INVALID', error instanceof Error ? error.message : undefined);
   }
@@ -97,8 +100,12 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string): Promise<
     let imageBytes = 0;
     let skippedEmpty = 0;
     let previouslyConverted = false;
+    let imagesOmitted = 0;
 
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
+      throwIfAborted(signal);
+      onProgress?.({ stage: 'Leyendo capítulo', done: index, total: items.length });
+      await yieldToUi();
       const path = decodeZipPath(item.url);
       const source = await archive.getText(item.url);
       if (!source) {
@@ -124,7 +131,10 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string): Promise<
         if (!entry) continue;
         const bytes = await entry.async('uint8array');
         const mime = mimeFromExtension(zipPath);
-        if (!mime || bytes.byteLength > MAX_IMAGE_BYTES || imageBytes + bytes.byteLength > MAX_TOTAL_IMAGE_BYTES) continue;
+        if (!mime || bytes.byteLength > MAX_IMAGE_BYTES || imageBytes + bytes.byteLength > MAX_TOTAL_IMAGE_BYTES) {
+          imagesOmitted++;
+          continue;
+        }
         imageBytes += bytes.byteLength;
         imageMap.set(src, `data:${mime};base64,${base64Of(bytes)}`);
       }
@@ -150,16 +160,21 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string): Promise<
       });
     }
 
+    if (imagesOmitted > 0) {
+      warnings.push(
+        `${imagesOmitted} imagen(es) no se muestran en la vista previa por su tamaño o formato. Se conservan en el EPUB descargado.`,
+      );
+    }
     if (previouslyConverted) {
       warnings.push('Este EPUB ya se había convertido. Se ha quitado la negrita anterior para aplicar tus ajustes actuales.');
     }
     if (skippedEmpty > 0) warnings.push(`${skippedEmpty} sección(es) sin texto (portadas, imágenes) se han omitido de la vista previa.`);
     if (sections.length === 0) throw new ConversionError('EPUB_NO_CONTENT');
 
-    book.destroy();
+    disposeBook(book);
     return { kind: 'epub', title, fileName, warnings, sections, original: buffer, opfPath };
   } catch (error) {
-    book.destroy();
+    disposeBook(book);
     if (error instanceof ConversionError) throw error;
     throw new ConversionError('EPUB_INVALID', error instanceof Error ? error.message : undefined);
   }

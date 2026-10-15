@@ -1,26 +1,40 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { CookieBanner } from './CookieBanner';
 import { openCookiePreferences } from '../lib/state/consent';
 import { usePremium } from '../hooks/usePremium';
-import { isSupabaseConfigured } from '../lib/state/config';
-import { track } from '../lib/state/analytics';
+import { config, isSupabaseConfigured } from '../lib/state/config';
+import { useConsent } from '../hooks/useConsent';
+import { acquisitionSource, registerVisit, track } from '../lib/state/analytics';
 
 const NAV = [
   { to: '/convertir', label: 'Convertir' },
   { to: '/que-es-la-lectura-bionica', label: '¿Qué es?' },
   { to: '/convertir-epub-a-lectura-bionica', label: 'EPUB' },
   { to: '/convertir-pdf-a-lectura-bionica', label: 'PDF' },
-  { to: '/premium', label: 'Premium' },
+  ...(config.premiumEnabled ? [{ to: '/premium', label: 'Premium' }] : []),
 ];
 
 export function Layout() {
   const { pathname } = useLocation();
   const premium = usePremium();
+  const consent = useConsent();
+  const visitCounted = useRef(false);
+
+  // Visita recurrente: una vez por sesión y solo si se aceptó la analítica
+  // (el contador local no existe sin ese consentimiento).
+  useEffect(() => {
+    if (!consent.analytics || visitCounted.current) return;
+    visitCounted.current = true;
+    if (registerVisit()) track('returning_visit', { returning: true });
+  }, [consent.analytics]);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
-    if (pathname === '/') track('landing_view');
+    track('page_view');
+    if (pathname === '/') {
+      track('landing_view', { source: acquisitionSource(document.referrer, window.location.search, window.location.hostname) });
+    }
   }, [pathname]);
 
   return (
@@ -49,7 +63,7 @@ export function Layout() {
                 {item.label}
               </NavLink>
             ))}
-            {isSupabaseConfigured && (
+            {config.premiumEnabled && isSupabaseConfigured && (
               <NavLink
                 to="/cuenta"
                 className={({ isActive }) =>

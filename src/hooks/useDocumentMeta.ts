@@ -27,8 +27,10 @@ export function useDocumentMeta(path: string, overrides: Partial<Pick<RouteMeta,
     setMeta('property', 'og:description', description);
     setMeta('property', 'og:type', 'website');
     if (config.siteUrl) {
-      setMeta('property', 'og:url', `${config.siteUrl}${path}`);
-      setLink('canonical', `${config.siteUrl}${path}`);
+      // Misma URL final que el sitemap: los hosts estáticos redirigen /ruta → /ruta/.
+      const url = `${config.siteUrl}${path === '/' ? '/' : `${path}/`}`;
+      setMeta('property', 'og:url', url);
+      setLink('canonical', url);
     }
     setMeta('name', 'robots', meta?.noindex ? 'noindex, nofollow' : 'index, follow');
   }, [path, overrides.title, overrides.description]);

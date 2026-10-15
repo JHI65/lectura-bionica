@@ -9,10 +9,6 @@ const THEME_COLORS: Record<ReadingSettings['theme'], { bg: string; fg: string; l
   oscuro: { bg: '#15171c', fg: '#e8e9ec', link: '#8ab4ff' },
 };
 
-export function themeColors(theme: ReadingSettings['theme']) {
-  return THEME_COLORS[theme];
-}
-
 export function readerCss(settings: ReadingSettings, options: { includeColors: boolean }): string {
   const colors = THEME_COLORS[settings.theme];
   const colorRules = options.includeColors

@@ -4,10 +4,10 @@ Estado a 2026-10-15: la parte técnica está construida y desactivada. Faltan lo
 
 ## Qué ya está hecho en el código
 
-- Huecos publicitarios en la portada, junto al conversor y en las guías. **Nunca** dentro del texto que se lee.
+- Huecos publicitarios: al final de la portada, tras completar una conversión y al final de las guías. **Nunca** dentro del texto que se lee ni junto a los botones de conversión o descarga. Altura reservada de 280 px.
 - Los anuncios se ocultan a usuarios Premium verificados.
 - Sin consentimiento de cookies decidido no se carga ningún script de anuncios.
-- Si el usuario rechaza la publicidad personalizada, se piden anuncios no personalizados.
+- Si el usuario rechaza la publicidad, no se carga ningún script de anuncios (tampoco «no personalizados»: en la UE también requieren consentimiento).
 - Sin `VITE_ADSENSE_CLIENT` y `VITE_ADSENSE_SLOT` válidos no se muestra nada en producción (en desarrollo aparece un placeholder marcado).
 - Política única en `src/lib/state/ads.ts`; componente en `src/components/AdSlot.tsx`.
 
@@ -22,7 +22,7 @@ Estado a 2026-10-15: la parte técnica está construida y desactivada. Faltan lo
 | 5 | Colocar el código de verificación y `public/ads.txt` | Claude, con el ID de editor | Plantilla en `public/ads.txt.example` |
 | 6 | Esperar la revisión de Google | Google | De unos días a varias semanas |
 | 7 | Crear un bloque de anuncios y pasar `ca-pub-…` y el ID del bloque | Tú | Claude los configura como variables `VITE_*` y despliega |
-| 8 | Activar el mensaje de consentimiento de AdSense (CMP) | Tú, en su panel | Obligatorio para usuarios del EEE; el banner actual no es un CMP certificado |
+| 8 | Activar el mensaje de consentimiento de AdSense (CMP) | Tú, en su panel | Obligatorio para usuarios del EEE; el banner actual bloquea de verdad la carga, pero no es un CMP certificado por Google |
 
 ## Datos que hay que facilitar (paso 3)
 

@@ -1,8 +1,6 @@
 // Modelo intermedio común a los dos formatos. El resto de la app (vista previa,
 // ajustes, exportación) trabaja sobre estos tipos y no sobre EPUB o PDF.
 
-import type { DocumentKind } from './files/validate';
-
 export interface EpubSection {
   id: string;
   title: string;
@@ -49,7 +47,3 @@ export interface PdfDocument extends BaseDocument {
 }
 
 export type ParsedDocument = EpubDocument | PdfDocument;
-
-export function documentKindLabel(kind: DocumentKind): string {
-  return kind === 'epub' ? 'EPUB' : 'PDF';
-}

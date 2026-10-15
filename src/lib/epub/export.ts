@@ -2,7 +2,6 @@
 // hoja de estilo tipográfica) y conserva el resto del paquete intacto.
 // Después se reabre el resultado y se comprueba su integridad antes de ofrecerlo.
 
-import ePub from 'epubjs';
 import JSZip from 'jszip';
 import { ConversionError } from '../files/errors';
 import { applyBionicToTree, removeBionicMarkup } from '../html/transform';
@@ -11,6 +10,8 @@ import { readerCss } from '../bionic/css';
 import type { ReadingSettings } from '../bionic/settings';
 import type { EpubDocument } from '../document';
 import { safeBaseName } from '../files/validate';
+import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import { disposeBook, openBook } from './book';
 import { findOpfPath } from './parse';
 import { relativeZipPath } from './paths';
 
@@ -68,7 +69,9 @@ function relativeHref(fromFile: string, toFile: string): string {
   return relativeZipPath(fromFile, toFile);
 }
 
-export async function exportEpub(doc: EpubDocument, settings: ReadingSettings): Promise<ExportResult> {
+export async function exportEpub(doc: EpubDocument, settings: ReadingSettings, options: TaskOptions = {}): Promise<ExportResult> {
+  const { signal, onProgress } = options;
+  const yieldToUi = createYielder();
   const warnings: string[] = [];
   const source = await JSZip.loadAsync(doc.original).catch(() => {
     throw new ConversionError('EXPORT_FAILED', 'el original ya no se puede leer');
@@ -82,7 +85,10 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings): 
   const replacements = new Map<string, string>();
   const transformedPaths = new Set<string>();
 
-  for (const section of doc.sections) {
+  for (const [index, section] of doc.sections.entries()) {
+    throwIfAborted(signal);
+    onProgress?.({ stage: 'Transformando capítulo', done: index, total: doc.sections.length });
+    await yieldToUi();
     const original = await zip.file(section.path)?.async('string');
     if (original === undefined) {
       throw new ConversionError('EXPORT_FAILED', `falta ${section.path}`);
@@ -105,7 +111,7 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings): 
     const textBefore = body.textContent ?? '';
     if (settings.bionicEnabled) applyBionicToTree(body, settings.boldRatio);
     if ((body.textContent ?? '') !== textBefore) {
-      throw new ConversionError('EXPORT_VERIFY_FAILED', `el texto de «${section.title}» cambió`);
+      throw new ConversionError('EXPORT_VERIFY_FAILED', `el texto del capítulo ${index + 1} cambió`);
     }
 
     const head = xhtml.getElementsByTagNameNS(XHTML_NS, 'head')[0] ?? xhtml.getElementsByTagNameNS('*', 'head')[0];
@@ -195,15 +201,15 @@ export async function verifyEpub(blob: Blob, cssPath: string, expectedChapters: 
   if (marked < expectedChapters) throw new ConversionError('EXPORT_VERIFY_FAILED', 'capítulos sin transformar');
 
   // Prueba final con el propio lector de epub.js.
-  const book = ePub(buffer);
+  let book;
   try {
-    await book.ready;
+    book = await openBook(buffer);
     const items = (book.spine as unknown as { items: unknown[] }).items;
     if (!items || items.length === 0) throw new ConversionError('EXPORT_VERIFY_FAILED', 'spine vacío');
   } catch (error) {
     if (error instanceof ConversionError) throw error;
     throw new ConversionError('EXPORT_VERIFY_FAILED', error instanceof Error ? error.message : undefined);
   } finally {
-    book.destroy();
+    if (book) disposeBook(book);
   }
 }

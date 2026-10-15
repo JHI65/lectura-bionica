@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert } from './Alert';
 import { AdSlot } from './AdSlot';
@@ -8,7 +8,9 @@ import { SettingsPanel } from './SettingsPanel';
 import { StepTracker } from './StepTracker';
 import { btnPrimary, btnSecondary, card, linkBtn } from './ui';
 import { useSettings } from '../hooks/useSettings';
+import type { Progress } from '../lib/async';
 import { ConversionError, toConversionError } from '../lib/files/errors';
+import { formatBytes } from '../lib/files/validate';
 import type { ParsedDocument } from '../lib/document';
 import { downloadBlob } from '../lib/download';
 import { previewCss, sectionBodyHtml } from '../lib/preview';
@@ -30,6 +32,30 @@ function failureFrom(error: unknown, fallback: 'UNKNOWN' | 'EXPORT_FAILED'): Fai
   return { code: conversion.code, message: conversion.message };
 }
 
+function isCancelled(error: unknown): boolean {
+  return error instanceof ConversionError && error.code === 'CANCELLED';
+}
+
+function ProgressPanel({ progress, onCancel, label }: { progress: Progress | null; onCancel: () => void; label: string }) {
+  const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : null;
+  return (
+    <div role="status" aria-live="polite" className="space-y-3">
+      <p className="text-sm font-medium">
+        {progress ? `${progress.stage} ${Math.min(progress.done + 1, progress.total)} de ${progress.total}` : label}
+      </p>
+      <progress
+        className="h-2 w-full overflow-hidden rounded-full accent-brand"
+        max={100}
+        value={percent ?? undefined}
+        aria-label="Progreso"
+      />
+      <button type="button" className={btnSecondary} onClick={onCancel}>
+        Cancelar
+      </button>
+    </div>
+  );
+}
+
 /**
  * Herramienta de conversión completa (importar → vista previa → descargar).
  * Se usa en la portada y en /convertir. Los parsers (epub.js, pdf.js) se cargan
@@ -47,6 +73,14 @@ export function Converter() {
   const [exportFailure, setExportFailure] = useState<Failure | null>(null);
   const [exportWarnings, setExportWarnings] = useState<string[]>([]);
   const [doneFile, setDoneFile] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState(0);
+  const [progress, setProgress] = useState<Progress | null>(null);
+
+  // La operación en curso se puede cancelar, y `busy` evita lanzarla dos veces
+  // aunque el usuario pulse varias veces antes de que React repinte.
+  const abortRef = useRef<AbortController | null>(null);
+  const busyRef = useRef(false);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const safeIndex = doc ? Math.min(sectionIndex, doc.sections.length - 1) : 0;
   const section = doc?.sections[safeIndex];
@@ -63,33 +97,55 @@ export function Converter() {
   }, [doc, sectionIndex, boldRatio, bionicEnabled]);
   const css = useMemo(() => previewCss(settings), [settings]);
 
+  const cancel = () => abortRef.current?.abort();
+
   const handleFile = async (file: File) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setPhase('reading');
     setFailure(null);
     setExportFailure(null);
     setDoneFile(null);
     setDoc(null);
+    setProgress(null);
+    setFileSize(file.size);
     track('conversion_started');
     try {
       const { parseDocument } = await import('../lib/convert');
-      const parsed = await parseDocument(file);
+      const parsed = await parseDocument(file, { signal: controller.signal, onProgress: setProgress });
       setDoc(parsed);
       setSectionIndex(0);
       setPhase('ready');
       track('format_imported', { format: parsed.kind });
     } catch (error) {
-      setFailure(failureFrom(error, 'UNKNOWN'));
-      setPhase('error');
+      if (isCancelled(error)) {
+        setPhase('idle');
+      } else {
+        setFailure(failureFrom(error, 'UNKNOWN'));
+        setPhase('error');
+      }
+    } finally {
+      busyRef.current = false;
+      abortRef.current = null;
+      setProgress(null);
     }
   };
 
   const handleExport = async () => {
-    if (!doc) return;
+    if (!doc || busyRef.current) return;
+    busyRef.current = true;
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setPhase('exporting');
     setExportFailure(null);
+    setProgress(null);
     try {
       const { exportDocument } = await import('../lib/convert');
-      const result = await exportDocument(doc, settings);
+      const result = await exportDocument(doc, settings, { signal: controller.signal, onProgress: setProgress });
       downloadBlob(result.blob, result.fileName);
       setExportWarnings(result.warnings);
       setDoneFile(result.fileName);
@@ -98,12 +154,17 @@ export function Converter() {
       track('download_completed', { format: doc.kind });
     } catch (error) {
       // El documento se conserva: el usuario puede ajustar y reintentar.
-      setExportFailure(failureFrom(error, 'EXPORT_FAILED'));
+      if (!isCancelled(error)) setExportFailure(failureFrom(error, 'EXPORT_FAILED'));
       setPhase('ready');
+    } finally {
+      busyRef.current = false;
+      abortRef.current = null;
+      setProgress(null);
     }
   };
 
   const restart = () => {
+    abortRef.current?.abort();
     setDoc(null);
     setFailure(null);
     setExportFailure(null);
@@ -119,7 +180,7 @@ export function Converter() {
       <StepTracker current={STEP_BY_PHASE[phase]} />
 
       {phase === 'idle' && (
-        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+        <div>
           <section aria-labelledby="import-title" className="space-y-4">
             <h2 id="import-title" className="sr-only">
               Importar documento
@@ -138,19 +199,19 @@ export function Converter() {
               </p>
             </div>
           </section>
-          <aside className="space-y-4">
-            <AdSlot label="Publicidad" />
-          </aside>
         </div>
       )}
 
       {phase === 'reading' && (
-        <div role="status" aria-live="polite" className={`${card} flex flex-col items-center gap-4 py-16 text-center`}>
+        <div className={`${card} mx-auto flex max-w-xl flex-col items-center gap-4 py-12 text-center`}>
           <span className="h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand" aria-hidden="true" />
           <p className="text-lg font-semibold">Leyendo el documento…</p>
           <p className="max-w-md text-sm text-ink-soft">
-            Extraemos el texto en tu dispositivo. Los PDF grandes pueden tardar unos segundos.
+            Extraemos el texto en tu dispositivo ({formatBytes(fileSize)}). Los documentos grandes pueden tardar unos segundos.
           </p>
+          <div className="w-full max-w-sm text-left">
+            <ProgressPanel progress={progress} onCancel={cancel} label="Preparando…" />
+          </div>
         </div>
       )}
 
@@ -176,7 +237,7 @@ export function Converter() {
                   {doc.title}
                 </h2>
                 <p className="text-sm text-ink-soft">
-                  {noun} · {doc.sections.length} {doc.kind === 'epub' ? 'secciones' : 'páginas con texto'}
+                  {noun} · {formatBytes(fileSize)} · {doc.sections.length} {doc.kind === 'epub' ? 'secciones' : 'páginas con texto'}
                 </p>
               </div>
               <button type="button" className={btnSecondary} onClick={restart}>
@@ -259,9 +320,13 @@ export function Converter() {
                   <p className="mt-1 text-xs opacity-80">Código: {exportFailure.code}</p>
                 </Alert>
               )}
-              <button type="button" className={`${btnPrimary} w-full`} onClick={handleExport} disabled={isWorking}>
-                {phase === 'exporting' ? 'Generando archivo…' : `Descargar ${noun} transformado`}
-              </button>
+              {phase === 'exporting' ? (
+                <ProgressPanel progress={progress} onCancel={cancel} label="Generando archivo…" />
+              ) : (
+                <button type="button" className={`${btnPrimary} w-full`} onClick={handleExport} disabled={isWorking}>
+                  {`Descargar ${noun} transformado`}
+                </button>
+              )}
               {phase === 'done' && doneFile && (
                 <Alert tone="success" title="Descarga iniciada">
                   <p className="break-all">{doneFile}</p>
@@ -275,11 +340,12 @@ export function Converter() {
                 </Alert>
               )}
             </div>
-
-            <AdSlot label="Publicidad" />
           </aside>
         </div>
       )}
+
+      {/* Zona secundaria: solo tras completar la conversión, lejos de los controles. */}
+      {phase === 'done' && <AdSlot label="Publicidad" className="mx-auto max-w-3xl" />}
     </div>
   );
 }

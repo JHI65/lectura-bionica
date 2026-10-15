@@ -3,7 +3,16 @@
 export const ADSENSE_CLIENT_PATTERN = /^ca-pub-\d{16}$/;
 export const ADSENSE_SLOT_PATTERN = /^\d{6,20}$/;
 
+/** Tamaño máximo por archivo, en MB. Único punto donde se define el límite. */
+export const DEFAULT_MAX_FILE_MB = 20;
+
+function parseMaxMb(value: string | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_FILE_MB;
+}
+
 export const config = {
+  maxFileMb: parseMaxMb(import.meta.env.VITE_MAX_FILE_MB),
   adsenseClient: normalizeAdsense(import.meta.env.VITE_ADSENSE_CLIENT),
   adsenseSlot: normalizeSlot(import.meta.env.VITE_ADSENSE_SLOT),
   siteUrl: (import.meta.env.VITE_SITE_URL?.trim() || '').replace(/\/+$/, ''),
@@ -11,6 +20,8 @@ export const config = {
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || '',
   premiumPriceLabel: import.meta.env.VITE_PREMIUM_PRICE_LABEL?.trim() || '2,99 €/mes',
   analyticsEndpoint: import.meta.env.VITE_ANALYTICS_ENDPOINT?.trim() || '',
+  /** Premium y cuentas (Supabase + Stripe). Apagado en el lanzamiento: ver docs/lanzamiento.md. */
+  premiumEnabled: import.meta.env.VITE_PREMIUM_ENABLED === 'true',
   isProduction: import.meta.env.PROD,
   isDev: import.meta.env.DEV,
 };

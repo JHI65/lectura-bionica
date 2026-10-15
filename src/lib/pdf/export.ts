@@ -2,13 +2,14 @@
 // (fragmento en negrita + resto en normal) y paginación propia.
 // Siempre sale en fondo blanco para imprimir; no es una copia del PDF original.
 
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
+import { PDFDocument, PDFName, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib';
 import { ConversionError } from '../files/errors';
 import { splitWord } from '../bionic/algorithm';
 import { INTENSITY_REST_OPACITY, type FontFamily, type ReadingSettings } from '../bionic/settings';
 import type { PdfBlock, PdfDocument } from '../document';
 import { safeBaseName } from '../files/validate';
-import { toWinAnsi } from './winansi';
+import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import { toPdfLiteral, toWinAnsi } from './winansi';
 
 const PAGE_WIDTH = 595.28; // A4
 const PAGE_HEIGHT = 841.89;
@@ -33,15 +34,53 @@ interface Token {
   tail: string;
 }
 
+type Rgb = [number, number, number];
+type FontSlot = 'regular' | 'bold' | 'footer';
+
+/**
+ * Escribe el contenido de una página como un único flujo comprimido.
+ * Con pdf-lib, cada drawText() crea decenas de objetos; en documentos largos
+ * eso dispara la memoria (cientos de MB) y el tamaño del PDF. Aquí cada
+ * operación es una línea de texto y el flujo se comprime al cerrar la página.
+ */
+class PageWriter {
+  private ops: string[] = [];
+  private keys: Record<FontSlot, string>;
+
+  constructor(
+    readonly page: PDFPage,
+    fonts: Record<FontSlot, PDFFont>,
+  ) {
+    this.keys = {
+      regular: String(page.node.newFontDictionary(fonts.regular.name, fonts.regular.ref)),
+      bold: String(page.node.newFontDictionary(fonts.bold.name, fonts.bold.ref)),
+      footer: String(page.node.newFontDictionary(fonts.footer.name, fonts.footer.ref)),
+    };
+  }
+
+  text(slot: FontSlot, size: number, x: number, y: number, color: Rgb, text: string): void {
+    const [r, g, b] = color.map((c) => c.toFixed(3));
+    this.ops.push(`BT ${this.keys[slot]} ${size.toFixed(2)} Tf ${r} ${g} ${b} rg ${x.toFixed(2)} ${y.toFixed(2)} Td ${toPdfLiteral(text)} Tj ET`);
+  }
+
+  close(pdf: PDFDocument): void {
+    const stream = pdf.context.flateStream(this.ops.join('\n'));
+    this.page.node.set(PDFName.of('Contents'), pdf.context.register(stream));
+    this.ops = [];
+  }
+}
+
 interface Layout {
   pdf: PDFDocument;
-  page: PDFPage;
+  writer: PageWriter;
   y: number;
   pageNumber: number;
   footer: string;
 }
 
-export async function exportPdf(doc: PdfDocument, settings: ReadingSettings): Promise<PdfExportResult> {
+export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, options: TaskOptions = {}): Promise<PdfExportResult> {
+  const { signal, onProgress } = options;
+  const yieldToUi = createYielder();
   const blocks: PdfBlock[] = doc.sections.flatMap((s) => s.blocks);
   if (blocks.length === 0) throw new ConversionError('EXPORT_FAILED', 'no hay texto que exportar');
 
@@ -56,25 +95,37 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings): Pr
   const ratio = settings.boldRatio;
   // Sobre fondo blanco, la opacidad del resto equivale a un gris más claro.
   const restGray = 1 - INTENSITY_REST_OPACITY[settings.intensity] * (1 - INK);
-  const restColor = rgb(restGray, restGray, Math.min(1, restGray + 0.01));
+  const restColor: Rgb = [restGray, restGray, Math.min(1, restGray + 0.01)];
+  const inkColor: Rgb = [INK, INK + 0.01, INK + 0.03];
+  const fontSet = { regular, bold, footer: footerFont };
   const maxWidth = PAGE_WIDTH - MARGIN * 2;
 
   let replacedTotal = 0;
   const footer = `${toWinAnsi(doc.title).text.slice(0, 80)} · Lectura biónica`;
-  const layout: Layout = { pdf, page: pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]), y: PAGE_HEIGHT - MARGIN, pageNumber: 1, footer };
-  const pages: PDFPage[] = [layout.page];
+  const layout: Layout = {
+    pdf,
+    writer: new PageWriter(pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]), fontSet),
+    y: PAGE_HEIGHT - MARGIN,
+    pageNumber: 1,
+    footer,
+  };
+  let pageCount = 1;
 
   const ensureSpace = (needed: number) => {
     if (layout.y - needed < MARGIN) {
-      drawFooter(layout, footerFont);
-      layout.page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-      pages.push(layout.page);
+      drawFooter(layout);
+      layout.writer.close(pdf); // comprime y libera la página terminada
+      layout.writer = new PageWriter(pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]), fontSet);
+      pageCount++;
       layout.pageNumber++;
       layout.y = PAGE_HEIGHT - MARGIN;
     }
   };
 
-  for (const block of blocks) {
+  for (const [blockIndex, block] of blocks.entries()) {
+    throwIfAborted(signal);
+    if (blockIndex % 25 === 0) onProgress?.({ stage: 'Generando PDF', done: blockIndex, total: blocks.length });
+    await yieldToUi();
     const cleaned = toWinAnsi(block.text.replace(/\s+/g, ' ').trim());
     replacedTotal += cleaned.replaced;
     if (!cleaned.text) continue;
@@ -105,20 +156,22 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings): Pr
         bold,
         boldAll: isHeading,
         restColor,
+        inkColor,
       });
       layout.y -= lineHeight;
     }
     layout.y -= lineHeight * 0.6; // separación entre bloques
   }
 
-  drawFooter(layout, footerFont);
+  drawFooter(layout);
+  layout.writer.close(pdf);
 
   pdf.setTitle(doc.title);
   pdf.setCreator('Lectura biónica');
   pdf.setProducer('Lectura biónica');
 
   const bytes = await pdf.save();
-  await verifyPdf(bytes, pages.length);
+  await verifyPdf(bytes, pageCount);
 
   const warnings: string[] = [];
   if (replacedTotal > 0) {
@@ -179,40 +232,42 @@ function wrap(tokens: Token[], opts: WrapOptions): LineToken[][] {
 function drawLine(
   layout: Layout,
   line: LineToken[],
-  opts: { x: number; size: number; regular: PDFFont; bold: PDFFont; boldAll: boolean; restColor: RGB },
+  opts: {
+    x: number;
+    size: number;
+    regular: PDFFont;
+    bold: PDFFont;
+    boldAll: boolean;
+    restColor: Rgb;
+    inkColor: Rgb;
+  },
 ): void {
   const spaceWidth = opts.regular.widthOfTextAtSize(' ', opts.size);
+  const { writer, y } = layout;
   let x = opts.x;
-  const color = rgb(INK, INK + 0.01, INK + 0.03);
   line.forEach((token, index) => {
     if (index > 0) x += spaceWidth;
     if (opts.boldAll) {
-      layout.page.drawText(token.head + token.tail, { x, y: layout.y, size: opts.size, font: opts.bold, color });
+      writer.text('bold', opts.size, x, y, opts.inkColor, token.head + token.tail);
       x += token.headWidth + token.tailWidth;
       return;
     }
     if (token.head) {
-      layout.page.drawText(token.head, { x, y: layout.y, size: opts.size, font: opts.bold, color });
+      writer.text('bold', opts.size, x, y, opts.inkColor, token.head);
       x += token.headWidth;
     }
     if (token.tail) {
       // Solo el resto de una palabra resaltada pierde contraste; el texto sin negrita queda en tinta normal.
-      const tailColor = token.head ? opts.restColor : color;
-      layout.page.drawText(token.tail, { x, y: layout.y, size: opts.size, font: opts.regular, color: tailColor });
+      const tailColor = token.head ? opts.restColor : opts.inkColor;
+      writer.text('regular', opts.size, x, y, tailColor, token.tail);
       x += token.tailWidth;
     }
   });
 }
 
-function drawFooter(layout: Layout, font: PDFFont): void {
+function drawFooter(layout: Layout): void {
   const text = `${layout.footer} · ${layout.pageNumber}`;
-  layout.page.drawText(text, {
-    x: MARGIN,
-    y: MARGIN / 2,
-    size: FOOTER_SIZE,
-    font,
-    color: rgb(0.42, 0.45, 0.5),
-  });
+  layout.writer.text('footer', FOOTER_SIZE, MARGIN, MARGIN / 2, [0.42, 0.45, 0.5], text);
 }
 
 function clamp(value: number, min: number, max: number): number {

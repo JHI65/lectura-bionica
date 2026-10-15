@@ -34,9 +34,24 @@ describe('validateFile', () => {
   });
 
   it('rechaza archivos que superan el tamaño máximo', async () => {
-    const big = new Uint8Array(26 * 1024 * 1024);
+    const big = new Uint8Array(21 * 1024 * 1024);
     big.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
     expect(await codeOf(validateFile(fileOf([big], 'enorme.pdf')))).toBe('FILE_TOO_LARGE');
+  });
+
+  it('el mensaje de tamaño indica el peso del archivo y el máximo permitido', async () => {
+    const big = new Uint8Array(21 * 1024 * 1024);
+    big.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+    const error = await validateFile(fileOf([big], 'enorme.pdf')).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConversionError);
+    expect((error as ConversionError).message).toMatch(/21 MB/);
+    expect((error as ConversionError).message).toMatch(/20 MB/);
+  });
+
+  it('un archivo justo en el límite se acepta', async () => {
+    const edge = new Uint8Array(20 * 1024 * 1024);
+    edge.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+    await expect(validateFile(fileOf([edge], 'limite.pdf'))).resolves.toEqual({ kind: 'pdf' });
   });
 
   it('sniffKind reconoce las firmas de PDF y ZIP', () => {
@@ -79,5 +94,29 @@ describe('parseDocument: archivos dañados o no admitidos', () => {
       encryptionXml: `<encryption><enc:EncryptedData xmlns:enc="x"><enc:CipherData><enc:CipherReference URI="OEBPS/c.xhtml"/></enc:CipherData></enc:EncryptedData></encryption>`,
     });
     expect(await codeOf(parseDocument(fileOf([buffer], 'drm.epub')))).toBe('EPUB_PROTECTED');
+  });
+});
+
+describe('cancelación, progreso y errores de memoria', () => {
+  it('una señal ya cancelada detiene la conversión con el código CANCELLED', async () => {
+    const buffer = await makeTextPdf([{ text: 'Texto de prueba suficiente para el documento.' }]);
+    const controller = new AbortController();
+    controller.abort();
+    expect(await codeOf(parseDocument(fileOf([buffer], 'a.pdf'), { signal: controller.signal }))).toBe('CANCELLED');
+  });
+
+  it('informa del progreso durante la lectura', async () => {
+    const buffer = await makeTextPdf([{ text: 'Texto de prueba suficiente para el documento.' }]);
+    const stages: string[] = [];
+    await parseDocument(fileOf([buffer], 'a.pdf'), { onProgress: (p) => stages.push(`${p.stage} ${p.done}/${p.total}`) });
+    expect(stages.length).toBeGreaterThan(0);
+    expect(stages[0]).toMatch(/Leyendo página 0\/1/);
+  });
+
+  it('los fallos de memoria se traducen a un mensaje comprensible', async () => {
+    const { toConversionError } = await import('../src/lib/files/errors');
+    expect(toConversionError(new RangeError('Array buffer allocation failed')).code).toBe('RESOURCE_LIMIT');
+    expect(toConversionError(new Error('Out of memory')).code).toBe('RESOURCE_LIMIT');
+    expect(toConversionError(new Error('otra cosa'), 'EXPORT_FAILED').code).toBe('EXPORT_FAILED');
   });
 });

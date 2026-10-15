@@ -1,4 +1,6 @@
-// Banner no bloqueante. Por defecto no hay consentimiento opcional marcado.
+// Banner no bloqueante y compacto. Por defecto no hay consentimiento opcional.
+// Rechazar y aceptar tienen el mismo peso visual y están a un clic. Las opciones
+// por categoría quedan plegadas para no tapar la herramienta en pantallas pequeñas.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OPEN_COOKIES_EVENT, getConsent, saveConsent } from '../lib/state/consent';
@@ -8,6 +10,7 @@ import { btnPrimary, btnSecondary, linkBtn } from './ui';
 export function CookieBanner() {
   const consent = useConsent();
   const [forced, setForced] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [analytics, setAnalytics] = useState(false);
   const [ads, setAds] = useState(false);
 
@@ -16,6 +19,7 @@ export function CookieBanner() {
       const current = getConsent();
       setAnalytics(current.analytics);
       setAds(current.ads);
+      setExpanded(true);
       setForced(true);
     };
     window.addEventListener(OPEN_COOKIES_EVENT, open);
@@ -25,45 +29,67 @@ export function CookieBanner() {
   if (consent.decided && !forced) return null;
 
   const save = (values: { analytics: boolean; ads: boolean }) => {
+    const hadAds = getConsent().ads;
     saveConsent(values);
     setForced(false);
+    setExpanded(false);
+    // Revocar la publicidad requiere descargar los scripts ya cargados.
+    if (hadAds && !values.ads) window.location.reload();
   };
 
   return (
     <section
       aria-labelledby="cookie-title"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:p-6"
-      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:p-5"
+      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 md:flex-row md:items-center">
+      <div className="mx-auto flex max-w-5xl flex-col gap-3 md:flex-row md:items-center md:gap-6">
         <div className="flex-1 text-sm leading-relaxed text-ink-soft">
-          <h2 id="cookie-title" className="text-base font-semibold text-ink">
+          <h2 id="cookie-title" className="text-sm font-semibold text-ink">
             Tu privacidad, tu elección
           </h2>
-          <p className="mt-1">
-            Tus documentos nunca salen de tu dispositivo. Las cookies necesarias funcionan siempre. Puedes aceptar o rechazar la analítica y la publicidad: sin tu elección no se cargan.{' '}
-            <Link className={linkBtn} to="/cookies">Más información</Link>
+          <p className="mt-0.5">
+            Tus documentos nunca salen de tu dispositivo. La analítica y la publicidad solo se cargan si las aceptas.{' '}
+            <Link className={linkBtn} to="/cookies">
+              Más información
+            </Link>
+            {' · '}
+            <button
+              type="button"
+              className={linkBtn}
+              aria-expanded={expanded}
+              aria-controls="cookie-options"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? 'Ocultar opciones' : 'Elegir por categoría'}
+            </button>
           </p>
-          <fieldset className="mt-3 flex flex-wrap gap-4">
-            <legend className="sr-only">Cookies opcionales</legend>
-            <label className="flex min-h-[44px] items-center gap-2">
-              <input type="checkbox" className="h-5 w-5 accent-brand" checked={analytics} onChange={(e) => setAnalytics(e.target.checked)} />
-              Analítica anónima
-            </label>
-            <label className="flex min-h-[44px] items-center gap-2">
-              <input type="checkbox" className="h-5 w-5 accent-brand" checked={ads} onChange={(e) => setAds(e.target.checked)} />
-              Publicidad personalizada
-            </label>
-          </fieldset>
+
+          {expanded && (
+            <fieldset id="cookie-options" className="mt-2 flex flex-wrap gap-x-6">
+              <legend className="sr-only">Cookies opcionales</legend>
+              <label className="flex min-h-[44px] items-center gap-2">
+                <input type="checkbox" className="h-5 w-5 accent-brand" checked={analytics} onChange={(e) => setAnalytics(e.target.checked)} />
+                Analítica anónima
+              </label>
+              <label className="flex min-h-[44px] items-center gap-2">
+                <input type="checkbox" className="h-5 w-5 accent-brand" checked={ads} onChange={(e) => setAds(e.target.checked)} />
+                Publicidad (Google AdSense)
+              </label>
+            </fieldset>
+          )}
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
-          <button type="button" className={btnSecondary} onClick={() => save({ analytics: false, ads: false })}>
+
+        <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0">
+          <button type="button" className={`${btnSecondary} px-3 md:px-5`} onClick={() => save({ analytics: false, ads: false })}>
             Rechazar opcionales
           </button>
-          <button type="button" className={btnSecondary} onClick={() => save({ analytics, ads })}>
-            Guardar mi elección
-          </button>
-          <button type="button" className={btnPrimary} onClick={() => save({ analytics: true, ads: true })}>
+          {expanded && (
+            <button type="button" className={`${btnSecondary} px-3 md:px-5`} onClick={() => save({ analytics, ads })}>
+              Guardar mi elección
+            </button>
+          )}
+          <button type="button" className={`${btnPrimary} px-3 md:px-5`} onClick={() => save({ analytics: true, ads: true })}>
             Aceptar todo
           </button>
         </div>

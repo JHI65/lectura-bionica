@@ -8,16 +8,16 @@ import { config } from '../lib/state/config';
 
 export function AdSlot({ label = 'Publicidad', className = '' }: { label?: string; className?: string }) {
   const premium = usePremium();
-  const consent = useConsent();
+  useConsent(); // se suscribe al consentimiento: el modo cambia al aceptar o rechazar el banner
   const isPremium = premium.status === 'premium';
   const mode = resolveAdMode(isPremium);
   const insRef = useRef<HTMLModElement>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (mode !== 'live' && mode !== 'non-personalized') return;
+    if (mode !== 'live') return;
     let cancelled = false;
-    loadAdsenseScript(mode === 'non-personalized')
+    loadAdsenseScript()
       .then(() => {
         if (cancelled || !insRef.current) return;
         try {
@@ -31,9 +31,7 @@ export function AdSlot({ label = 'Publicidad', className = '' }: { label?: strin
     return () => {
       cancelled = true;
     };
-    // `consent.ads` cambia el modo; `mode` ya lo refleja.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, consent.decided]);
+  }, [mode]);
 
   if (mode === 'off' || failed) return null;
 
@@ -50,7 +48,8 @@ export function AdSlot({ label = 'Publicidad', className = '' }: { label?: strin
   }
 
   return (
-    <aside aria-label={label} className={`min-h-[100px] ${className}`}>
+    // Altura reservada: evita que el contenido salte cuando el anuncio carga.
+    <aside aria-label={label} className={`min-h-[280px] ${className}`}>
       <p className="mb-1 text-center text-[11px] uppercase tracking-wide text-ink-soft">{label}</p>
       <ins
         ref={insRef}

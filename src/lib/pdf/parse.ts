@@ -4,6 +4,7 @@
 import * as pdfjs from 'pdfjs-dist';
 import { ConversionError } from '../files/errors';
 import type { PdfDocument, PdfSection } from '../document';
+import { createYielder, throwIfAborted, type TaskOptions } from '../async';
 import { buildBlocks, buildLines, type TextFragment } from './layout';
 
 const MAX_PAGES = 2000;
@@ -24,7 +25,14 @@ function mapPdfError(error: unknown): ConversionError {
   return new ConversionError('PDF_DAMAGED', error instanceof Error ? error.message : undefined);
 }
 
-export async function parsePdf(buffer: ArrayBuffer, fileName: string, workerSrc?: string): Promise<PdfDocument> {
+export interface ParsePdfOptions extends TaskOptions {
+  workerSrc?: string;
+}
+
+export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: ParsePdfOptions = {}): Promise<PdfDocument> {
+  const { workerSrc, signal, onProgress } = options;
+  const yieldToUi = createYielder();
+  throwIfAborted(signal);
   if (workerSrc) pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
   else ensurePdfWorker();
 
@@ -50,6 +58,9 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, workerSrc?
     let suspicious = 0;
 
     for (let pageNumber = 1; pageNumber <= pagesToRead; pageNumber++) {
+      throwIfAborted(signal);
+      onProgress?.({ stage: 'Leyendo página', done: pageNumber - 1, total: pagesToRead });
+      await yieldToUi();
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
       const fragments: TextFragment[] = [];

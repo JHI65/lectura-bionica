@@ -11,22 +11,67 @@ import { fileURLToPath } from 'node:url';
 import { loadEnv } from 'vite';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const dist = join(root, 'dist');
+// DIST_DIR permite generar el SEO sobre un build en otra carpeta (pruebas).
+const dist = process.env.DIST_DIR ? resolve(process.env.DIST_DIR) : join(root, 'dist');
 const env = loadEnv('production', root, 'VITE_');
 const siteUrl = (process.env.VITE_SITE_URL || env.VITE_SITE_URL || '').replace(/\/+$/, '');
-const routes = JSON.parse(readFileSync(join(root, 'src/content/routes.json'), 'utf8'));
+const premiumEnabled = (process.env.VITE_PREMIUM_ENABLED || env.VITE_PREMIUM_ENABLED) === 'true';
+// Las rutas que dependen de Premium solo se publican si está activado.
+const routes = JSON.parse(readFileSync(join(root, 'src/content/routes.json'), 'utf8')).filter(
+  (route) => route.requires !== 'premium' || premiumEnabled,
+);
 const template = readFileSync(join(dist, 'index.html'), 'utf8');
 
 if (!siteUrl) {
   console.warn('[seo] VITE_SITE_URL no está definida: canonical, Open Graph y sitemap no se generan. Defínela antes de publicar.');
 }
 
+const maxMb = Number(process.env.VITE_MAX_FILE_MB || env.VITE_MAX_FILE_MB) || 20;
+
+// Datos estructurados de la portada: aplicación web gratuita + preguntas frecuentes.
+function homeJsonLd() {
+  const faq = JSON.parse(readFileSync(join(root, 'src/content/faq.json'), 'utf8')).filter(
+    (item) => !item.premium || premiumEnabled,
+  );
+  const data = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Conversor PDF/EPUB a Lectura Biónica',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Web',
+      inLanguage: 'es',
+      isAccessibleForFree: true,
+      description: 'Convierte EPUB y PDF con texto a lectura biónica personalizable, procesados en tu navegador.',
+      ...(siteUrl ? { url: `${siteUrl}/` } : {}),
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a.replace('{maxMb}', String(maxMb)) },
+      })),
+    },
+  ];
+  // </ en JSON dentro de <script> podría cerrar la etiqueta: se escapa.
+  return data
+    .map((item) => `<script type="application/ld+json">${JSON.stringify(item).replace(/</g, '\\u003c')}</script>`)
+    .join('\n    ');
+}
+
+// GitHub Pages (y la mayoría de hosts estáticos) sirven cada ruta como carpeta y
+// redirigen /ruta → /ruta/. La URL canónica es la final, con barra.
+const canonicalUrl = (path) => `${siteUrl}${path === '/' ? '/' : `${path}/`}`;
+
 const escape = (value) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 function pageHtml(route) {
   const title = /lectura bi[oó]nica/i.test(route.title) ? route.title : `${route.title} · Lectura biónica`;
   const description = route.description;
-  const canonical = siteUrl ? `${siteUrl}${route.path}` : '';
+  const canonical = siteUrl ? canonicalUrl(route.path) : '';
   const head = [
     `<title>${escape(title)}</title>`,
     `<meta name="description" content="${escape(description)}" />`,
@@ -36,6 +81,7 @@ function pageHtml(route) {
     `<meta property="og:type" content="website" />`,
     canonical ? `<meta property="og:url" content="${escape(canonical)}" />` : '',
     siteUrl ? `<meta property="og:image" content="${escape(`${siteUrl}/icon-512.png`)}" />` : '',
+    route.path === '/' ? homeJsonLd() : '',
     canonical ? `<link rel="canonical" href="${escape(canonical)}" />` : '',
   ]
     .filter(Boolean)
@@ -61,7 +107,7 @@ for (const route of routes) {
 if (siteUrl) {
   const urls = routes
     .filter((r) => !r.noindex)
-    .map((r) => `  <url><loc>${escape(`${siteUrl}${r.path}`)}</loc></url>`)
+    .map((r) => `  <url><loc>${escape(canonicalUrl(r.path))}</loc></url>`)
     .join('\n');
   writeFileSync(
     join(dist, 'sitemap.xml'),

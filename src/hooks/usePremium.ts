@@ -1,9 +1,11 @@
 // Estado Premium compartido en memoria. Viene del backend (entitlement) y
 // nunca se persiste en el navegador ni se cambia desde el cliente.
+//
+// supabase-js se importa de forma diferida: sin configuración no se descarga.
 import { useSyncExternalStore } from 'react';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import { fetchEntitlement, type Entitlement } from '../lib/auth/entitlement';
-import { getSupabase } from '../lib/auth/supabase';
+import type { Session } from '@supabase/supabase-js';
+import type { Entitlement } from '../lib/auth/entitlement';
+import { isSupabaseConfigured } from '../lib/state/config';
 
 export type PremiumStatus = 'unavailable' | 'anonymous' | 'loading' | 'free' | 'premium' | 'error';
 
@@ -13,8 +15,8 @@ export interface PremiumState {
   entitlement: Entitlement | null;
 }
 
-const INITIAL: PremiumState = { status: 'loading', email: null, entitlement: null };
-let state: PremiumState = getSupabase() ? INITIAL : { status: 'unavailable', email: null, entitlement: null };
+const UNAVAILABLE: PremiumState = { status: 'unavailable', email: null, entitlement: null };
+let state: PremiumState = isSupabaseConfigured ? { status: 'loading', email: null, entitlement: null } : UNAVAILABLE;
 const listeners = new Set<() => void>();
 let started = false;
 let requestId = 0;
@@ -22,6 +24,12 @@ let requestId = 0;
 function emit(next: PremiumState) {
   state = next;
   listeners.forEach((l) => l());
+}
+
+async function client() {
+  if (!isSupabaseConfigured) return null;
+  const { getSupabase } = await import('../lib/auth/supabase');
+  return getSupabase();
 }
 
 async function refreshFor(session: Session | null) {
@@ -32,13 +40,10 @@ async function refreshFor(session: Session | null) {
   }
   emit({ ...state, status: 'loading', email: session.user.email ?? null });
   try {
+    const { fetchEntitlement } = await import('../lib/auth/entitlement');
     const entitlement = await fetchEntitlement();
     if (current !== requestId) return;
-    emit({
-      status: entitlement?.premium ? 'premium' : 'free',
-      email: session.user.email ?? null,
-      entitlement,
-    });
+    emit({ status: entitlement?.premium ? 'premium' : 'free', email: session.user.email ?? null, entitlement });
   } catch {
     if (current !== requestId) return;
     // Ante la duda, no se ocultan anuncios: solo el backend puede confirmar Premium.
@@ -47,14 +52,15 @@ async function refreshFor(session: Session | null) {
 }
 
 function start() {
-  if (started) return;
-  const supabase = getSupabase();
-  if (!supabase) return;
+  if (started || !isSupabaseConfigured) return;
   started = true;
-  supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-    void refreshFor(session);
+  void client().then((supabase) => {
+    if (!supabase) return;
+    supabase.auth.onAuthStateChange((_event, session) => {
+      void refreshFor(session);
+    });
+    void supabase.auth.getSession().then(({ data }) => refreshFor(data.session));
   });
-  void supabase.auth.getSession().then(({ data }) => refreshFor(data.session));
 }
 
 function subscribe(listener: () => void) {
@@ -64,9 +70,9 @@ function subscribe(listener: () => void) {
 }
 
 export function refreshPremium(): void {
-  const supabase = getSupabase();
-  if (!supabase) return;
-  void supabase.auth.getSession().then(({ data }) => refreshFor(data.session));
+  void client().then((supabase) => {
+    if (supabase) void supabase.auth.getSession().then(({ data }) => refreshFor(data.session));
+  });
 }
 
 export function usePremium(): PremiumState {

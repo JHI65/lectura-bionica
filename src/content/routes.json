@@ -37,13 +37,15 @@
   {
     "path": "/premium",
     "title": "Premium sin anuncios",
-    "description": "Suscripción Premium para usar la aplicación sin anuncios. Todas las funciones gratuitas siguen disponibles."
+    "description": "Suscripción Premium para usar la aplicación sin anuncios. Todas las funciones gratuitas siguen disponibles.",
+    "requires": "premium"
   },
   {
     "path": "/cuenta",
     "title": "Tu cuenta",
     "description": "Gestiona tu acceso, tu suscripción Premium y tu facturación.",
-    "noindex": true
+    "noindex": true,
+    "requires": "premium"
   },
   {
     "path": "/privacidad",

@@ -9,7 +9,7 @@ Aplicación web para convertir EPUB y PDF con texto a lectura biónica personali
 - React 18 + TypeScript + Vite 6 + Tailwind CSS 3 + React Router 6
 - **EPUB:** epub.js (metadatos, spine, índice, recursos) + JSZip (reescritura del paquete al exportar)
 - **PDF:** pdf.js (extracción de texto) + pdf-lib (generación del PDF transformado)
-- **Cuenta y Premium:** Supabase (auth por enlace de correo, tabla de suscripciones con RLS) y Stripe Billing (Checkout, Portal, webhook firmado) mediante Edge Functions
+- **Cuenta y Premium (desactivados en el lanzamiento, `VITE_PREMIUM_ENABLED=false`):** Supabase (auth por enlace de correo, tabla de suscripciones con RLS) y Stripe Billing (Checkout, Portal, webhook firmado) mediante Edge Functions
 - **Publicidad:** Google AdSense, cargado solo con configuración válida y consentimiento
 
 ## Ejecutar en local
@@ -55,7 +55,7 @@ Decisiones relevantes:
 - **EPUB exportado.** Se conserva el ZIP original (mimetype primero y sin comprimir, recursos byte a byte). Solo cambian los capítulos y el OPF (se registra una hoja de estilo con la tipografía elegida). Antes de descargar, el resultado se reabre con JSZip y con epub.js; si algo falla, no se entrega.
 - **PDF exportado.** Es una reconstrucción A4 con negrita bionica real (fragmento en negrita y resto en normal). Las fuentes estándar solo cubren WinAnsi: el resto de caracteres se sustituye por `?` y se avisa.
 - **Premium nunca se decide en el cliente.** El estado sale de `entitlement`, que lee la tabla `subscriptions`. Esa tabla solo la escribe el webhook de Stripe tras verificar la firma. Nada de Premium se guarda en `localStorage`. Ante un error, los anuncios no se ocultan.
-- **Anuncios.** Política única en `src/lib/state/ads.ts`: sin consentimiento decidido no se carga ningún script; con consentimiento de anuncios rechazado, se piden anuncios no personalizados; Premium verificado nunca ve anuncios; en desarrollo sin AdSense aparece un placeholder marcado como tal.
+- **Anuncios.** Política única en `src/lib/state/ads.ts`: sin consentimiento de publicidad no se carga **ningún** script de anuncios (ni «no personalizados»: en la UE también usan cookies y requieren consentimiento); Premium verificado nunca ve anuncios; sin identificadores válidos no hay anuncios en producción; en desarrollo aparece un placeholder marcado como tal. Hueco reservado de 280 px para evitar saltos de diseño, siempre fuera del texto leído y lejos de los controles.
 - **Analítica.** Solo con consentimiento y a un endpoint propio (`VITE_ANALYTICS_ENDPOINT`). Los parámetros pasan por una lista blanca: nunca nombres de archivo, texto ni contenido de libros.
 
 ## Variables de entorno
@@ -65,10 +65,12 @@ Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
 | Variable | Obligatoria | Descripción |
 |---|---|---|
 | `VITE_SITE_URL` | En producción | URL pública sin barra final. Canonical, sitemap y URLs de retorno de Stripe |
-| `VITE_MAX_FILE_MB` | No | Tamaño máximo de archivo. Por defecto 25 |
+| `VITE_MAX_FILE_MB` | No | Tamaño máximo de archivo. Por defecto 20 |
 | `VITE_ADSENSE_CLIENT` | Para anuncios | Formato `ca-pub-` + 16 dígitos. Solo tras aprobación de AdSense |
 | `VITE_ADSENSE_SLOT` | Para anuncios | Identificador del bloque de anuncios (solo dígitos) |
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Para cuentas | Proyecto de Supabase |
+| `VITE_PREMIUM_ENABLED` | No | `true` activa Premium, cuentas y sus páginas. Por defecto apagado |
+| `VITE_BASE` | No | Ruta base si se sirve bajo un subdirectorio (p. ej. `/lectura-bionica/`). `npm run deploy:pages` la define |
 | `VITE_PREMIUM_PRICE_LABEL` | No | Precio mostrado. Por defecto `2,99 €/mes` |
 | `VITE_ANALYTICS_ENDPOINT` | No | Endpoint propio de analítica |
 
@@ -114,18 +116,23 @@ Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` n
 - **PDF:** el orden de lectura sigue el texto del PDF. Columnas, tablas, notas al pie y fórmulas pueden no conservarse. Los PDF escaneados se detectan y se rechazan, sin OCR.
 - **PDF exportado:** siempre sale en fondo blanco, para imprimir. No aplica el espaciado entre letras (pdf-lib no lo soporta).
 - **EPUB:** el DRM o cifrado de contenido no se procesa. Los capítulos que no son XHTML estricto se conservan sin transformar y se avisa. Las imágenes SVG de portada no se muestran en la vista previa.
-- **Web Workers:** el procesamiento principal corre en el hilo de la página (pdf.js usa su propio worker). Para archivos muy grandes conviene moverlo a un worker dedicado.
+- **Web Workers:** el procesamiento corre en el hilo de la página (pdf.js usa su propio worker). La interfaz se mantiene fluida cediendo el control cada ~40 ms, con progreso y botón de cancelar. Las medidas están en `docs/lanzamiento.md`.
 - **SEO:** las páginas estáticas llevan título, descripción, canonical y sitemap propios, pero su contenido se renderiza en cliente. Si el posicionamiento es prioritario, conviene prerenderizar el cuerpo (p. ej. con vite-ssg).
 - **CSP:** se declara como `<meta>`. `frame-ancestors` solo puede configurarse en cabeceras del servidor. Si añades un endpoint de analítica, añádelo a `connect-src`.
 
 ## Pruebas
 
-`npm test` cubre:
+`npm test` (97 pruebas) cubre:
 
 - Algoritmo: tildes, ñ, puntuación, combinaciones Unicode, alfabetos no latinos, cifras, palabras de una letra.
 - DOM: el texto visible no cambia, enlaces y código intactos, idempotencia.
 - Sanitizado: scripts, manejadores, `javascript:`, iframes, imágenes no seguras.
 - Validación: firma real frente a extensión, tamaño, vacíos, PDF sin texto, PDF truncado, EPUB con DRM, ZIP que no es EPUB.
-- Ciclo completo: importar EPUB y PDF generados, exportar, reabrir y comprobar la estructura.
+- Ciclo completo: importar EPUB y PDF generados, exportar, reabrir y comprobar la estructura; el texto exportado se vuelve a extraer íntegro.
+- Privacidad: ninguna petición de red (fetch, XHR, beacon) durante importar y exportar.
+- Enlaces internos: todo `to="/ruta"` existe en `routes.json`.
+- Anuncios y consentimiento: sin decidir o rechazado no hay anuncios; Premium nunca los ve; sin identificadores, nada.
+- Analítica: lista blanca de parámetros, sin nombres de archivo; nada se envía sin consentimiento.
+- Límites, cancelación, progreso y errores de memoria.
 
-Pendiente: pruebas de navegador (móvil y escritorio) y pruebas de la lógica de Edge Functions con la CLI de Supabase y eventos de prueba de Stripe.
+Las pruebas de navegador real (Chrome, escritorio y móvil, accesibilidad con axe-core, consentimiento, Pages) y sus resultados están en `docs/lanzamiento.md`. Pendiente: pruebas de las Edge Functions con la CLI de Supabase y eventos de prueba de Stripe, y dispositivos móviles reales.

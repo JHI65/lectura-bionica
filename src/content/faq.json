@@ -1,0 +1,39 @@
+[
+  {
+    "q": "¿Necesito crear una cuenta?",
+    "a": "No. La conversión, los ajustes y la descarga funcionan sin registro ni cuenta."
+  },
+  {
+    "q": "¿Mis libros se suben a un servidor?",
+    "a": "No. El EPUB o PDF se procesa en tu navegador. No se sube a ningún servidor y no lo guardamos. Solo se guardan tus preferencias visuales en el propio navegador."
+  },
+  {
+    "q": "¿La lectura biónica me ayuda con el TDAH o mejora la comprensión?",
+    "a": "Es una herramienta de personalización de la lectura. Algunas personas la encuentran más cómoda y otras no notan diferencia. No está demostrado de forma general que mejore la comprensión y no sustituye a ningún tratamiento."
+  },
+  {
+    "q": "¿Qué formatos admite?",
+    "a": "EPUB y PDF. Para PDF se necesita texto seleccionable: si el PDF es un escaneo, la aplicación te lo indica en lugar de generar un resultado vacío."
+  },
+  {
+    "q": "¿Hay un límite de tamaño?",
+    "a": "Sí: hasta {maxMb} MB por archivo, para que la conversión sea fiable en tu dispositivo. Si lo superas, la aplicación te lo indica antes de empezar."
+  },
+  {
+    "q": "¿El PDF descargado es idéntico al original?",
+    "a": "No. Es un documento reformateado a partir del texto extraído, con títulos, párrafos y listas. Columnas, tablas, imágenes, notas al pie y fórmulas pueden no conservarse."
+  },
+  {
+    "q": "¿Qué pasa con los EPUB protegidos con DRM?",
+    "a": "No se pueden transformar. La aplicación lo detecta y te avisa."
+  },
+  {
+    "q": "¿Hay publicidad?",
+    "a": "La herramienta es gratuita y puede mostrar anuncios. Solo se cargan si aceptas la publicidad en el aviso de cookies; si la rechazas, no se muestra ninguno. Puedes cambiar tu elección en cualquier momento desde «Preferencias de cookies»."
+  },
+  {
+    "q": "¿Qué incluye Premium?",
+    "a": "Todas las funciones gratuitas sin anuncios. La suscripción se gestiona con Stripe y puedes cancelarla o cambiar los datos de facturación desde tu cuenta.",
+    "premium": true
+  }
+]

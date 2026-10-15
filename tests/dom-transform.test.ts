@@ -119,3 +119,29 @@ describe('sanitizeTree', () => {
     expect(root.querySelector('td')?.getAttribute('colspan')).toBe('2');
   });
 });
+
+describe('cantidad de letras en negrita', () => {
+  const boldOf = (ratio: number) => {
+    const root = body('<p>extraordinario</p>');
+    applyBionicToTree(root, ratio);
+    return root.querySelector('b')?.textContent ?? '';
+  };
+
+  it('a mayor proporción, más letras en negrita', () => {
+    expect(boldOf(0.2).length).toBeLessThan(boldOf(0.5).length);
+    expect(boldOf(0.5).length).toBeLessThan(boldOf(0.8).length);
+  });
+
+  it('transformHtmlBody respeta la proporción indicada', () => {
+    const html = '<p>extraordinario</p>';
+    expect(transformHtmlBody(html, true, 0.3)).not.toBe(transformHtmlBody(html, true, 0.7));
+  });
+
+  it('el texto no cambia con ninguna proporción', () => {
+    for (const ratio of [0.2, 0.35, 0.5, 0.8]) {
+      const root = body('<p>Había una vez un jardín, ¡y niños!</p>');
+      applyBionicToTree(root, ratio);
+      expect(root.textContent).toBe('Había una vez un jardín, ¡y niños!');
+    }
+  });
+});

@@ -1,5 +1,7 @@
 // Controles de personalización. Cada cambio se refleja al instante en la vista previa.
 import {
+  BOLD_RATIO_MAX,
+  BOLD_RATIO_MIN,
   INTENSITY_LABEL,
   type FontFamily,
   type Intensity,
@@ -122,6 +124,20 @@ export function SettingsPanel({ settings, onChange, onReset }: Props) {
         options={(Object.keys(INTENSITY_LABEL) as Intensity[]).map((v) => ({ value: v, label: INTENSITY_LABEL[v] }))}
         onChange={(v) => onChange('intensity', v)}
       />
+
+      <Slider
+        id="bold-ratio"
+        label="Letras en negrita"
+        value={settings.boldRatio}
+        min={BOLD_RATIO_MIN}
+        max={BOLD_RATIO_MAX}
+        step={0.05}
+        format={(v) => `${Math.round(v * 100)} %`}
+        onChange={(v) => onChange('boldRatio', Math.round(v * 100) / 100)}
+      />
+      <p className="-mt-3 text-xs leading-relaxed text-ink-soft">
+        Porcentaje de cada palabra en negrita. Las palabras de 1 a 3 letras resaltan solo la primera.
+      </p>
 
       <Segmented<FontFamily>
         legend="Tipo de letra"

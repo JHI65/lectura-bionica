@@ -5,7 +5,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
 import { ConversionError } from '../files/errors';
 import { splitWord } from '../bionic/algorithm';
-import { BIONIC_RATIO, INTENSITY_REST_OPACITY, type FontFamily, type ReadingSettings } from '../bionic/settings';
+import { INTENSITY_REST_OPACITY, type FontFamily, type ReadingSettings } from '../bionic/settings';
 import type { PdfBlock, PdfDocument } from '../document';
 import { safeBaseName } from '../files/validate';
 import { toWinAnsi } from './winansi';
@@ -53,7 +53,7 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings): Pr
 
   const bodySize = clamp(settings.fontSize * 0.75, 8, 24); // px a pt
   const lineHeight = bodySize * settings.lineHeight;
-  const ratio = BIONIC_RATIO;
+  const ratio = settings.boldRatio;
   // Sobre fondo blanco, la opacidad del resto equivale a un gris más claro.
   const restGray = 1 - INTENSITY_REST_OPACITY[settings.intensity] * (1 - INK);
   const restColor = rgb(restGray, restGray, Math.min(1, restGray + 0.01));

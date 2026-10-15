@@ -103,7 +103,7 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings): 
     sanitizeTree(body);
     // Comprobación de integridad: el texto debe quedar idéntico tras transformar.
     const textBefore = body.textContent ?? '';
-    if (settings.bionicEnabled) applyBionicToTree(body);
+    if (settings.bionicEnabled) applyBionicToTree(body, settings.boldRatio);
     if ((body.textContent ?? '') !== textBefore) {
       throw new ConversionError('EXPORT_VERIFY_FAILED', `el texto de «${section.title}» cambió`);
     }

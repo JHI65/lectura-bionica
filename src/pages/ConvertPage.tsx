@@ -49,16 +49,16 @@ export function ConvertPage() {
   const safeIndex = doc ? Math.min(sectionIndex, doc.sections.length - 1) : 0;
   const section = doc?.sections[safeIndex];
 
-  // La negrita solo se recalcula si cambia la intensidad o el interruptor;
+  // La negrita solo se recalcula si cambia la cantidad de letras o el interruptor;
   // la tipografía y el tema se aplican como CSS, sin volver a transformar.
-  const { intensity, bionicEnabled } = deferredSettings;
+  const { boldRatio, bionicEnabled } = deferredSettings;
   const previewBody = useMemo(() => {
     if (!doc) return '';
     const current = doc.sections[Math.min(sectionIndex, doc.sections.length - 1)];
     if (!current) return '<p>Este documento no tiene texto que mostrar.</p>';
-    return sectionBodyHtml(doc, current, { ...deferredSettings, intensity, bionicEnabled });
+    return sectionBodyHtml(doc, current, { ...deferredSettings, boldRatio, bionicEnabled });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, sectionIndex, intensity, bionicEnabled]);
+  }, [doc, sectionIndex, boldRatio, bionicEnabled]);
   const css = useMemo(() => previewCss(settings), [settings]);
 
   const handleFile = async (file: File) => {

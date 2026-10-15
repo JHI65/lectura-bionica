@@ -1,7 +1,7 @@
 // Preferencias de lectura guardadas localmente. Son solo ajustes visuales:
 // nunca se usan para decidir nada de Premium ni de seguridad.
 
-import { DEFAULT_SETTINGS, type ReadingSettings } from '../bionic/settings';
+import { BOLD_RATIO_MAX, BOLD_RATIO_MIN, DEFAULT_SETTINGS, type ReadingSettings } from '../bionic/settings';
 
 const KEY = 'lb:reading-settings:v1';
 
@@ -35,6 +35,7 @@ export function sanitizeSettings(input: unknown): ReadingSettings {
   return {
     bionicEnabled: pick('bionicEnabled', (v) => typeof v === 'boolean'),
     intensity: pick('intensity', oneOf(['suave', 'media', 'alta'] as const)),
+    boldRatio: pick('boldRatio', inRange(BOLD_RATIO_MIN, BOLD_RATIO_MAX)),
     fontSize: pick('fontSize', inRange(12, 32)),
     fontFamily: pick('fontFamily', oneOf(['sans', 'serif', 'mono'] as const)),
     lineHeight: pick('lineHeight', inRange(1.2, 2.6)),

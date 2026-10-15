@@ -81,8 +81,8 @@ export function removeBionicMarkup(root: Element): number {
  * Transforma un fragmento HTML (ya sanitizado) y devuelve el HTML resultante
  * del <body>. Con `enabled = false` devuelve el contenido sin cambios.
  */
-export function transformHtmlBody(html: string, enabled: boolean): string {
+export function transformHtmlBody(html: string, enabled: boolean, ratio: number = BIONIC_RATIO): string {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  if (enabled) applyBionicToTree(doc.body);
+  if (enabled) applyBionicToTree(doc.body, ratio);
   return doc.body.innerHTML;
 }

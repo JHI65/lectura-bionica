@@ -8,7 +8,7 @@ import { blocksToHtml } from './pdf/html';
 
 export function sectionBodyHtml(doc: ParsedDocument, section: EpubSection | PdfSection, settings: ReadingSettings): string {
   const raw = doc.kind === 'epub' ? (section as EpubSection).html : blocksToHtml((section as PdfSection).blocks);
-  return transformHtmlBody(raw, settings.bionicEnabled);
+  return transformHtmlBody(raw, settings.bionicEnabled, settings.boldRatio);
 }
 
 export function previewCss(settings: ReadingSettings): string {

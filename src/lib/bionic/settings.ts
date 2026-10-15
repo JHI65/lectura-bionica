@@ -8,6 +8,8 @@ export type ReadingTheme = 'claro' | 'sepia' | 'oscuro';
 export interface ReadingSettings {
   bionicEnabled: boolean;
   intensity: Intensity;
+  /** Proporción de letras de cada palabra en negrita (0.2–0.8). */
+  boldRatio: number;
   fontSize: number; // px en vista previa, pt en PDF
   fontFamily: FontFamily;
   lineHeight: number; // múltiplo
@@ -19,6 +21,7 @@ export interface ReadingSettings {
 export const DEFAULT_SETTINGS: ReadingSettings = {
   bionicEnabled: true,
   intensity: 'media',
+  boldRatio: 0.5,
   fontSize: 18,
   fontFamily: 'sans',
   lineHeight: 1.7,
@@ -32,6 +35,8 @@ export const DEFAULT_SETTINGS: ReadingSettings = {
 // la primera: ver boldLetterCount. Es una herramienta de personalización
 // visual: no implica ningún beneficio clínico.
 export const BIONIC_RATIO = 0.5;
+export const BOLD_RATIO_MIN = 0.2;
+export const BOLD_RATIO_MAX = 0.8;
 
 // La intensidad controla el contraste: opacidad del resto de cada palabra
 // (la parte que no va en negrita). Menor opacidad = más contraste.

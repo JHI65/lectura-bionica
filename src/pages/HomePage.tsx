@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { AdSlot } from '../components/AdSlot';
-import { btnPrimary, btnSecondary, card, linkBtn, sectionTitle } from '../components/ui';
+import { Converter } from '../components/Converter';
+import { card, linkBtn, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { FAQ } from '../content/faq';
 import { config } from '../lib/state/config';
@@ -26,23 +27,22 @@ export function HomePage() {
 
   return (
     <>
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:pt-20">
-        <div className="max-w-3xl space-y-6">
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:pt-16">
+        <div className="max-w-3xl space-y-4">
           <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-sm font-medium text-brand">Personalización de la lectura</p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">
-            Lee tus EPUB y PDF con un formato que resalta el inicio de cada palabra
+            Conversor PDF/EPUB a Lectura Biónica
           </h1>
           <p className="text-lg leading-relaxed text-ink-soft">
-            Convierte un libro o documento con texto a lectura biónica, ajusta la tipografía a tu gusto, revisa la vista previa y descarga el resultado. Sin registro.
+            Convierte un libro o documento con texto a lectura biónica, ajusta la tipografía a tu gusto, revisa la vista previa y descarga el resultado. Sin registro.{' '}
+            <Link to="/que-es-la-lectura-bionica" className={linkBtn}>
+              ¿Qué es la lectura biónica?
+            </Link>
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link to="/convertir" className={btnPrimary}>
-              Subir mi documento
-            </Link>
-            <Link to="/que-es-la-lectura-bionica" className={btnSecondary}>
-              Qué es la lectura biónica
-            </Link>
-          </div>
+        </div>
+
+        <div id="convertir" className="mt-8 scroll-mt-6">
+          <Converter />
         </div>
 
         <figure className={`${card} mt-12 max-w-3xl`}>

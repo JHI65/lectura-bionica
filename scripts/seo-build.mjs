@@ -24,7 +24,7 @@ if (!siteUrl) {
 const escape = (value) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 function pageHtml(route) {
-  const title = `${route.title} · Lectura biónica`;
+  const title = /lectura bi[oó]nica/i.test(route.title) ? route.title : `${route.title} · Lectura biónica`;
   const description = route.description;
   const canonical = siteUrl ? `${siteUrl}${route.path}` : '';
   const head = [

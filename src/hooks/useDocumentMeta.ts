@@ -20,7 +20,7 @@ export function useDocumentMeta(path: string, overrides: Partial<Pick<RouteMeta,
     const meta = metaFor(path);
     const title = overrides.title ?? meta?.title ?? 'Lectura biónica';
     const description = overrides.description ?? meta?.description ?? '';
-    document.title = `${title} · Lectura biónica`;
+    document.title = /lectura bi[oó]nica/i.test(title) ? title : `${title} · Lectura biónica`;
 
     setMeta('name', 'description', description);
     setMeta('property', 'og:title', title);

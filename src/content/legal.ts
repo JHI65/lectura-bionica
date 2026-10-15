@@ -140,7 +140,7 @@ const ES: LegalDocument[] = [
       {
         heading: '1. Servicio',
         paragraphs: [
-          'Lectura biónica permite transformar documentos EPUB y PDF con texto en un formato de lectura con negrita bionica personalizable. La conversión es gratuita y no requiere registro.',
+          'Readably permite transformar documentos EPUB y PDF con texto en un formato de lectura con negrita bionica personalizable. La conversión es gratuita y no requiere registro.',
         ],
       },
       {

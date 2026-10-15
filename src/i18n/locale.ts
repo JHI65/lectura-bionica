@@ -9,7 +9,8 @@ export const DEFAULT_LOCALE: Locale = 'es';
 
 export const HTML_LANG: Record<Locale, string> = { es: 'es', en: 'en' };
 export const OG_LOCALE: Record<Locale, string> = { es: 'es_ES', en: 'en_US' };
-export const BRAND: Record<Locale, string> = { es: 'Lectura biónica', en: 'Readably' };
+// Mismo nombre en todos los idiomas: coincide con el dominio (readably.online).
+export const BRAND: Record<Locale, string> = { es: 'Readably', en: 'Readably' };
 /** Sufijo del nombre de archivo descargado: libro-lectura-bionica.epub / book-bionic-reading.epub */
 export const FILE_SUFFIX: Record<Locale, string> = { es: 'lectura-bionica', en: 'bionic-reading' };
 /** Para dar formato a números y tamaños. */

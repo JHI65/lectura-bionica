@@ -75,6 +75,17 @@ describe('rutas por idioma', () => {
     }
   });
 
+  it('el título completo (con la marca añadida) cabe en 70 caracteres', () => {
+    for (const r of ROUTES) {
+      for (const l of LOCALES) {
+        const meta = r[l];
+        if (!meta) continue;
+        const full = meta.title.includes('Readably') ? meta.title : `${meta.title} · Readably`;
+        expect(full.length, `${r.id}/${l}: «${full}»`).toBeLessThanOrEqual(70);
+      }
+    }
+  });
+
   it('los títulos y descripciones no se repiten dentro de un idioma', () => {
     for (const l of LOCALES) {
       const metas = ROUTES.flatMap((r) => (r[l] ? [r[l]!] : []));

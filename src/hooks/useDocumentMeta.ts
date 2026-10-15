@@ -32,7 +32,7 @@ export function useDocumentMeta(overrides: Overrides = {}) {
 
   useEffect(() => {
     // La marca no se repite si el título ya la contiene.
-    const hasBrand = title.toLowerCase().includes(brand.toLowerCase()) || /lectura bi[oó]nica/i.test(title);
+    const hasBrand = title.toLowerCase().includes(brand.toLowerCase());
     document.title = hasBrand ? title : `${title} · ${brand}`;
     document.documentElement.lang = HTML_LANG[locale];
 

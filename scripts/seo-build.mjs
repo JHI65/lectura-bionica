@@ -21,7 +21,7 @@ const maxMb = Number(process.env.VITE_MAX_FILE_MB || env.VITE_MAX_FILE_MB) || 20
 
 const LOCALES = ['es', 'en'];
 const DEFAULT_LOCALE = 'es';
-const BRAND = { es: 'Lectura biónica', en: 'Readably' };
+const BRAND = { es: 'Readably', en: 'Readably' };
 const OG_LOCALE = { es: 'es_ES', en: 'en_US' };
 const APP_NAME = { es: 'Conversor PDF/EPUB a Lectura Biónica', en: 'PDF/EPUB to Bionic Reading Converter' };
 const APP_DESCRIPTION = {
@@ -87,7 +87,7 @@ function homeJsonLd(locale, path) {
 function pageHtml(route, locale) {
   const meta = route[locale];
   const brand = BRAND[locale];
-  const hasBrand = meta.title.toLowerCase().includes(brand.toLowerCase()) || /lectura bi[oó]nica/i.test(meta.title);
+  const hasBrand = meta.title.toLowerCase().includes(brand.toLowerCase());
   const title = hasBrand ? meta.title : `${meta.title} · ${brand}`;
   const canonical = siteUrl ? canonicalUrl(meta.path) : '';
   const alternates = entriesFor(route);

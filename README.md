@@ -1,4 +1,4 @@
-# Lectura biónica
+# Readably
 
 Aplicación web para convertir EPUB y PDF con texto a lectura biónica personalizable. Los documentos se procesan en el navegador; no se suben a ningún servidor.
 

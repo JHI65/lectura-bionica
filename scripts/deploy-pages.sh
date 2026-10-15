@@ -21,6 +21,21 @@ OWNER_LOWER="$(printf '%s' "$OWNER" | tr '[:upper:]' '[:lower:]')"
 BASE="${PAGES_BASE:-/${REPO_NAME}/}"
 SITE_URL="${PAGES_SITE_URL:-https://${OWNER_LOWER}.github.io/${REPO_NAME}}"
 
+# Dominio propio: si existe public/CNAME, el sitio se sirve en la raíz de ese dominio.
+# Protección: GitHub redirige la URL antigua al dominio en cuanto se publica el
+# CNAME. Si el DNS aún no apunta a GitHub Pages, eso dejaría la web caída.
+if [ -f public/CNAME ] && [ -z "${PAGES_BASE:-}" ] && [ -z "${PAGES_SITE_URL:-}" ]; then
+  DOMAIN="$(tr -d '[:space:]' < public/CNAME)"
+  if ! dig +short A "$DOMAIN" @1.1.1.1 | grep -qE '^185\.199\.(108|109|110|111)\.153$'; then
+    echo "✗ $DOMAIN todavía no apunta a GitHub Pages (registros A 185.199.108-111.153)." >&2
+    echo "  Publicar ahora dejaría la web caída. Configura el DNS y espera a que propague." >&2
+    echo "  Ver docs/dominio.md. Para publicar sin dominio propio, borra public/CNAME." >&2
+    exit 1
+  fi
+  BASE="/"
+  SITE_URL="https://${DOMAIN}"
+fi
+
 if [ -n "$(git status --porcelain)" ]; then
   echo "Hay cambios sin confirmar: haz commit antes de publicar." >&2
   exit 1

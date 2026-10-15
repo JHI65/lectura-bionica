@@ -15,7 +15,7 @@ Estado a 2026-10-15: la parte técnica está construida y desactivada. Faltan lo
 
 | # | Paso | Quién | Notas |
 |---|---|---|---|
-| 1 | Comprar un dominio (p. ej. `lecturabionica.app`, `.es`, `.com`) | Tú | ~10 €/año. Probable bloqueo si falta: AdSense no suele aprobar subdominios de `github.io` |
+| 1 | ~~Comprar un dominio~~ **Hecho: `readably.online`** (ver `docs/dominio.md`) | Tú | ~10 €/año. Probable bloqueo si falta: AdSense no suele aprobar subdominios de `github.io` |
 | 2 | Apuntar el dominio a GitHub Pages (registros DNS + `CNAME`) | Claude, con el dominio | Ajustar también `VITE_SITE_URL` y la base (`PAGES_BASE=/`) en el despliegue |
 | 3 | Rellenar los datos legales en `src/content/legal.ts` | Tú los das, Claude los pone | Hoy hay marcadores `[COMPLETAR]` visibles |
 | 4 | Crear la cuenta en adsense.google.com y añadir el dominio | Tú | Mayor de edad; verificación de identidad y de pago |

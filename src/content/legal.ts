@@ -1,6 +1,6 @@
-// Textos legales. Los campos entre corchetes [COMPLETAR] deben rellenarse con
-// los datos reales del titular antes de publicar. Ningún texto de aquí
-// constituye por sí solo cumplimiento normativo: debe revisarse con asesoría.
+// Textos legales. Ningún texto de aquí constituye por sí solo cumplimiento
+// normativo: debe revisarse con asesoría. Los datos del titular están en
+// CONTROLLER; los campos que falten se marcan [COMPLETAR].
 //
 // Los textos describen lo que la web hace de verdad: mientras Premium esté
 // desactivado (VITE_PREMIUM_ENABLED), no se mencionan cuentas, Supabase ni Stripe.
@@ -21,13 +21,13 @@ export interface LegalDocument {
 }
 
 export const CONTROLLER = {
-  name: '[COMPLETAR: nombre o razón social del titular]',
-  id: '[COMPLETAR: NIF/CIF]',
-  address: '[COMPLETAR: dirección postal]',
-  email: '[COMPLETAR: correo de contacto de privacidad]',
+  name: 'Jaime Lillo Benito',
+  id: 'NIF 50482704G',
+  address: 'Calle Portillo 16, Valdemoro (Madrid)',
+  email: 'jaimelillobenito@gmail.com',
 };
 
-const UPDATED = '[COMPLETAR: fecha de la última revisión]';
+const UPDATED = '15 de octubre de 2026';
 const PREMIUM = config.premiumEnabled;
 
 /** Incluye los elementos solo cuando la condición se cumple. */
@@ -82,7 +82,7 @@ export const LEGAL_DOCS: LegalDocument[] = [
             'Stripe: cobro de la suscripción y portal de facturación.',
           ]),
           'Google AdSense: anuncios, solo con consentimiento. Consulta la política de Google.',
-          'Proveedor de alojamiento: [COMPLETAR] puede registrar direcciones IP en sus logs técnicos.',
+          'Alojamiento: GitHub Pages (GitHub, Inc.) puede registrar direcciones IP y datos técnicos de acceso en sus registros.',
         ],
       },
       {

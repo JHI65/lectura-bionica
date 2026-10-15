@@ -6,7 +6,7 @@ Estado a 2026-10-15. Premium, cuentas y pagos están **desactivados** (`VITE_PRE
 
 ```bash
 cd ~/Dev/lectura-bionica
-npm test && npm run build         # 97 pruebas + tipos + build
+npm test && npm run build         # 123 pruebas + tipos + build
 git add -A && git commit -m "..."
 git push origin main
 npm run deploy:pages              # compila con la base de Pages y sube a gh-pages
@@ -34,7 +34,7 @@ Antes de la corrección de hoy, el PDF de 400 páginas llegaba a **677 MB** y 10
 
 | Prueba | Resultado |
 |---|---|
-| `npm test` (vitest, jsdom) | 97/97 |
+| `npm test` (vitest, jsdom) | 123/123 |
 | `tsc --noEmit` | sin errores |
 | Chrome real, escritorio y móvil (390×844): flujo EPUB y PDF, errores, cancelar, descarga | 40/40 |
 | Misma batería bajo el prefijo `/lectura-bionica/` con `404.html` (simulación de GitHub Pages) | 40/40 |
@@ -60,10 +60,11 @@ Antes de la corrección de hoy, el PDF de 400 páginas llegaba a **677 MB** y 10
 - Canonical sin barra final apuntaba a una URL que redirige.
 - Imágenes de más de 3 MB desaparecían de la vista previa sin aviso.
 - `registerVisit` no se llamaba nunca (visitas recurrentes sin medir).
+- **Guías y páginas legales mostraban «Página no encontrada» al entrar por su URL con barra final** (la canónica). Detectado tarde porque las comprobaciones miraban el código HTTP y axe, no el contenido. Corregido, con prueba de renderizado de cada ruta (`tests/routes-render.test.ts`) y comprobación en Chrome de contenido real de las 11 rutas.
 
 ## Tareas manuales antes de lanzar
 
-1. **Datos del titular** en `src/content/legal.ts` (nombre, NIF, dirección, correo). Hoy se ven `[COMPLETAR]` en la web pública.
+1. ~~Datos del titular~~ Publicados el 2026-10-15 (nombre, NIF, dirección, correo). Revisar con gestoría si el domicilio mostrado es el adecuado.
 2. **Revisión legal** de privacidad, cookies, condiciones y aviso legal (RGPD y LSSI). Nada de esto se declara como cumplido.
 3. **Dominio propio** si se quiere AdSense: `github.io` no suele aprobarse. Ver `docs/publicidad-adsense.md`.
 4. **Search Console:** en un subdirectorio de `github.io`, `robots.txt` y `sitemap.xml` del sitio no los lee ningún rastreador (solo cuenta el de la raíz del host). Con dominio propio funcionan; hasta entonces, enviar la URL a mano.

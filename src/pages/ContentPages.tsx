@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from '../components/AdSlot';
 import { btnPrimary, card, linkBtn, sectionTitle } from '../components/ui';
-import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { normalizePath, useDocumentMeta } from '../hooks/useDocumentMeta';
 import { LEGAL_DOCS } from '../content/legal';
 import { SEO_PAGES } from '../content/seo-pages';
 
 /** Página de guía: una intención de búsqueda por ruta, sin contenido duplicado. */
 export function GuidePage() {
-  const { pathname } = useLocation();
+  const pathname = normalizePath(useLocation().pathname);
   const page = SEO_PAGES.find((p) => p.path === pathname);
   useDocumentMeta(pathname);
 
@@ -67,7 +67,7 @@ export function GuidePage() {
 
 /** Documentos legales. Los datos del titular se rellenan en src/content/legal.ts. */
 export function LegalPage() {
-  const { pathname } = useLocation();
+  const pathname = normalizePath(useLocation().pathname);
   const doc = LEGAL_DOCS.find((d) => d.path === pathname);
   useDocumentMeta(pathname);
 

@@ -122,7 +122,7 @@ Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` n
 
 ## Pruebas
 
-`npm test` (97 pruebas) cubre:
+`npm test` (123 pruebas) cubre:
 
 - Algoritmo: tildes, ñ, puntuación, combinaciones Unicode, alfabetos no latinos, cifras, palabras de una letra.
 - DOM: el texto visible no cambia, enlaces y código intactos, idempotencia.

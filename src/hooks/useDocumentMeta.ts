@@ -11,11 +11,20 @@ interface RouteMeta {
   noindex?: boolean;
 }
 
-export function metaFor(path: string): RouteMeta | undefined {
-  return (routes as RouteMeta[]).find((r) => r.path === path);
+/**
+ * Las URLs publicadas terminan en barra (/privacidad/) porque cada ruta es una
+ * carpeta. Las rutas internas no: se normaliza para que ambas coincidan.
+ */
+export function normalizePath(path: string): string {
+  return path.length > 1 ? path.replace(/\/+$/, '') : path;
 }
 
-export function useDocumentMeta(path: string, overrides: Partial<Pick<RouteMeta, 'title' | 'description'>> = {}) {
+export function metaFor(path: string): RouteMeta | undefined {
+  return (routes as RouteMeta[]).find((r) => r.path === normalizePath(path));
+}
+
+export function useDocumentMeta(rawPath: string, overrides: Partial<Pick<RouteMeta, 'title' | 'description'>> = {}) {
+  const path = normalizePath(rawPath);
   useEffect(() => {
     const meta = metaFor(path);
     const title = overrides.title ?? meta?.title ?? 'Lectura biónica';

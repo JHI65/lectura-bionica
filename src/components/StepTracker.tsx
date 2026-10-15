@@ -13,7 +13,7 @@ export function StepTracker({ current }: { current: number }) {
             aria-current={state === 'current' ? 'step' : undefined}
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${
               state === 'current'
-                ? 'bg-brand text-white'
+                ? 'bg-button-gradient font-semibold text-ink'
                 : state === 'done'
                   ? 'bg-brand-soft text-brand'
                   : 'bg-slate-100 text-ink-soft'

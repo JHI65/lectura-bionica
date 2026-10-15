@@ -59,7 +59,7 @@ export function Layout() {
   const footerLink = 'min-h-[44px] content-center text-ink-soft hover:text-brand';
 
   return (
-    <div className="flex min-h-screen flex-col bg-cream text-ink">
+    <div className="flex min-h-screen flex-col bg-white text-ink">
       <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow">
         {t.skipToContent}
       </a>

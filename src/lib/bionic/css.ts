@@ -4,9 +4,9 @@
 import { FONT_STACK, INTENSITY_REST_OPACITY, READING_WIDTH_CH, type ReadingSettings } from './settings';
 
 const THEME_COLORS: Record<ReadingSettings['theme'], { bg: string; fg: string; link: string }> = {
-  claro: { bg: '#ffffff', fg: '#1c1f24', link: '#1d4ed8' },
+  claro: { bg: '#ffffff', fg: '#1c1f24', link: '#b83a7d' },
   sepia: { bg: '#f6efe0', fg: '#3b2f1e', link: '#7c4a12' },
-  oscuro: { bg: '#15171c', fg: '#e8e9ec', link: '#8ab4ff' },
+  oscuro: { bg: '#15171c', fg: '#e8e9ec', link: '#f4a9cd' },
 };
 
 export function readerCss(settings: ReadingSettings, options: { includeColors: boolean }): string {

@@ -15,7 +15,6 @@ interface Props {
   lang?: string;
   /** Cambia al cambiar de documento o sección: entonces sí se recrea el iframe. */
   resetKey: string;
-  minHeight?: string;
 }
 
 function applyContent(frame: HTMLIFrameElement | null, body: string, css: string): void {
@@ -35,7 +34,7 @@ function applyContent(frame: HTMLIFrameElement | null, body: string, css: string
   scroller.scrollTop = Math.round(ratio * Math.max(0, newRange));
 }
 
-export function ReaderPreview({ body, css, title, resetKey, lang = 'es', minHeight = '70vh' }: Props) {
+export function ReaderPreview({ body, css, title, resetKey, lang = 'es' }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const latest = useRef({ body, css });
   latest.current = { body, css };
@@ -59,7 +58,9 @@ export function ReaderPreview({ body, css, title, resetKey, lang = 'es', minHeig
       // Si el usuario cambió algo mientras cargaba, se aplica lo último.
       onLoad={() => applyContent(frameRef.current, latest.current.body, latest.current.css)}
       className="w-full rounded-xl border border-slate-200 bg-white shadow-inner"
-      style={{ minHeight, height: '100%' }}
+      // Altura propia (no 100 %): dentro de una columna que se estira desbordaba
+      // su contenedor y se solapaba con el contenido de debajo.
+      style={{ height: 'clamp(420px, calc(100vh - 14rem), 900px)' }}
     />
   );
 }

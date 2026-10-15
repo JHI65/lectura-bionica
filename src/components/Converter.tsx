@@ -247,7 +247,8 @@ export function Converter() {
 
       {doc && (phase === 'ready' || phase === 'exporting' || phase === 'done') && (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <section aria-labelledby="preview-title" className="min-w-0 space-y-4">
+          {/* En escritorio la vista previa se queda visible mientras se ajustan los controles. */}
+          <section aria-labelledby="preview-title" className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <h2 id="preview-title" className="truncate text-lg font-semibold">

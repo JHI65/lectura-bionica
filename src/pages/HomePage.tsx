@@ -17,7 +17,7 @@ export function HomePage() {
 
   return (
     <>
-      <section className="hero-wash">
+      <section>
        <div className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:pt-16">
         <div className="max-w-3xl space-y-4">
           <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-sm font-medium text-brand">{h.eyebrow}</p>
@@ -71,8 +71,8 @@ export function HomePage() {
         </h2>
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {h.features.map((feature) => (
-            <li key={feature} className="flex gap-3 rounded-xl bg-white p-5 text-ink-soft shadow-sm">
-              <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-brand" aria-hidden="true" />
+            <li key={feature} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-5 text-ink-soft shadow-sm">
+              <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-gradient" aria-hidden="true" />
               <span>{feature}</span>
             </li>
           ))}

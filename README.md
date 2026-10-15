@@ -60,19 +60,18 @@ Decisiones relevantes:
 
 ## Paleta
 
-Derivada del logo (libro pastel). Está definida en `tailwind.config.js`:
+Derivada del logo (libro pastel) y deliberadamente cálida: **no** usa el azul eléctrico ni el degradado azul-violeta típicos de las plantillas «de IA». Definida en `tailwind.config.js`:
 
 | Token | Valor | Uso |
 |---|---|---|
-| `brand` | `#3c62df` (hover `#234cd5`, soft `#ecf0fd`) | Botones, enlaces, estado activo |
-| `violet` | `#844dcb` | Acento secundario |
-| `coral` | `#ca2f44` | Acento cálido |
-| `cream` | `#faf8f5` | Fondo de página |
+| `button-gradient` | `#a8dcfb → #c3b7ec → #fdc4cf` | Botón primario, con texto oscuro (contraste ≥ 9:1) |
+| `brand-gradient` | Cielo → pervinca → lavanda → rosa | Filete de cabecera y detalles decorativos |
+| `brand` | `#b83a7d` (hover `#9d326b`, soft `#fbeff5`) | Enlaces, estado activo, sliders, interruptor |
+| `white` | `#ffffff` | Fondo de página |
 | `ink` | `#171b36` (soft `#4b506c`) | Texto |
 | `slate` | Neutros con tinte pervinca | Bordes y fondos |
-| `brand-gradient` | Cielo → pervinca → violeta → rosa | Solo decorativo |
 
-Los pasteles del logo no tienen contraste suficiente para texto, así que cada tono tiene una versión profunda con ≥ 4,5:1 sobre blanco, crema y su propio fondo claro. Cualquier color nuevo debe pasar esa comprobación; la batería de accesibilidad (axe-core) la verifica.
+Los pasteles del logo no tienen contraste suficiente para texto, por eso el texto de acento usa una frambuesa profunda (rosa + lavanda del logo) con ≥ 4,7:1 sobre blanco y su tinte. Cualquier color nuevo debe pasar esa comprobación; la batería de accesibilidad (axe-core) la verifica. Los avisos conservan rojo, verde y ámbar porque su color comunica significado.
 
 ## Idiomas
 

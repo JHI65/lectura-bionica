@@ -6,6 +6,8 @@
 // config para que el texto no se desincronice del comportamiento real.
 
 import { config } from '../lib/state/config';
+import type { Locale } from '../i18n/locale';
+import { GUIDES_EN } from './seo-pages.en';
 
 export interface SeoSection {
   heading: string;
@@ -16,21 +18,22 @@ export interface SeoSection {
 }
 
 export interface SeoPage {
-  path: string;
+  /** Identificador estable de la ruta (src/content/routes.json). */
+  id: string;
   h1: string;
   intro: string;
   updated: string;
   sections: SeoSection[];
   faq?: Array<{ q: string; a: string }>;
-  cta: { label: string; to: string };
+  cta: { label: string };
 }
 
 const UPDATED = '16 de octubre de 2026';
 const MAX_MB = config.maxFileMb;
 
-export const SEO_PAGES: SeoPage[] = [
+const GUIDES_ES: SeoPage[] = [
   {
-    path: '/que-es-la-lectura-bionica',
+    id: 'guide-what',
     h1: '¿Qué es la lectura biónica?',
     intro:
       'La lectura biónica es una forma de presentar un texto en la que el comienzo de cada palabra se muestra en negrita y el resto con menos peso o contraste. La idea es ofrecer puntos de anclaje visual para que la mirada avance por la línea. Es una opción de formato: no es un tratamiento ni un método terapéutico.',
@@ -111,10 +114,10 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'Es el contraste que regula la intensidad. Al atenuar el resto de la palabra, el inicio destaca más. Si no te gusta, baja la intensidad o desactiva la negrita.',
       },
     ],
-    cta: { label: 'Probar con mi documento', to: '/' },
+    cta: { label: 'Probar con mi documento' },
   },
   {
-    path: '/convertir-epub-a-lectura-bionica',
+    id: 'guide-epub',
     h1: 'Convertir un EPUB a lectura biónica',
     intro:
       'Puedes transformar un EPUB a lectura biónica y descargar un EPUB nuevo con el mismo contenido y el inicio de cada palabra resaltado. La transformación se hace en tu navegador: el libro no se sube a ningún servidor.',
@@ -191,10 +194,10 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'Si no tienen DRM, sí, para tu uso personal. Respeta siempre los derechos de autor y los términos de la tienda donde los compraste.',
       },
     ],
-    cta: { label: 'Convertir un EPUB', to: '/' },
+    cta: { label: 'Convertir un EPUB' },
   },
   {
-    path: '/convertir-pdf-a-lectura-bionica',
+    id: 'guide-pdf',
     h1: 'Convertir un PDF a lectura biónica',
     intro:
       'Si tu PDF contiene texto seleccionable, puedes reformatearlo en lectura biónica y descargar un PDF nuevo. El resultado es una reconstrucción a partir del texto, no una copia idéntica del original, y conviene saber qué se conserva y qué no.',
@@ -275,10 +278,10 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'Sí. Solo se extrae el texto: los enlaces, los marcadores y las imágenes del PDF original no se conservan.',
       },
     ],
-    cta: { label: 'Convertir un PDF', to: '/' },
+    cta: { label: 'Convertir un PDF' },
   },
   {
-    path: '/personalizar-tipografia-para-leer',
+    id: 'guide-typography',
     h1: 'Personalizar la tipografía para leer mejor',
     intro:
       'Cambiar el tamaño, el tipo de letra y el espaciado puede hacer que un texto sea más cómodo de leer. Lo que funciona depende de cada persona, de la pantalla y de la luz, así que esta guía propone puntos de partida y una forma de encontrar los tuyos.',
@@ -360,10 +363,10 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'Sí, en tu propio navegador y solo en tu dispositivo. No se envían a ningún servidor.',
       },
     ],
-    cta: { label: 'Ajustar mi lectura', to: '/' },
+    cta: { label: 'Ajustar mi lectura' },
   },
   {
-    path: '/herramientas-accesibilidad-lectora',
+    id: 'guide-accessibility',
     h1: 'Herramientas de accesibilidad lectora',
     intro:
       'Leer cómodamente no depende de una única herramienta. Combinar el formato del documento, la tipografía, el contraste y, si te sirve, la lectura en voz alta permite adaptar cada texto a lo que necesitas en ese momento.',
@@ -434,10 +437,10 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'Las funciones de sistema y de los navegadores que se citan vienen incluidas. La conversión de esta web es gratuita.',
       },
     ],
-    cta: { label: 'Adaptar un documento', to: '/' },
+    cta: { label: 'Adaptar un documento' },
   },
   {
-    path: '/pdf-escaneado-ocr',
+    id: 'guide-ocr',
     h1: 'PDF escaneado: cómo reconocerlo y qué hacer',
     intro:
       'Si al subir un PDF la herramienta te dice que no contiene texto seleccionable, lo más probable es que sea un escaneo: una imagen de cada página. Esta guía explica cómo comprobarlo y qué opciones tienes para convertirlo en un documento con texto.',
@@ -511,10 +514,10 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'Sí, siempre que el resultado sea un PDF con texto seleccionable. Cualquier herramienta que produzca ese archivo sirve.',
       },
     ],
-    cta: { label: 'Probar con un PDF', to: '/' },
+    cta: { label: 'Probar con un PDF' },
   },
   {
-    path: '/solucion-de-problemas-conversion',
+    id: 'guide-troubleshoot',
     h1: 'Solución de problemas: por qué no se convierte mi documento',
     intro:
       'Cuando un documento no se puede convertir, la herramienta te muestra un mensaje y un código. Aquí tienes qué significa cada uno, por qué ocurre y qué puedes hacer.',
@@ -595,6 +598,9 @@ export const SEO_PAGES: SeoPage[] = [
         a: 'No. El documento se procesa en tu navegador y no se envía a ningún servidor, ni siquiera cuando hay un error.',
       },
     ],
-    cta: { label: 'Probar de nuevo', to: '/' },
+    cta: { label: 'Probar de nuevo' },
   },
 ];
+
+/** Guías por idioma. Cada guía tiene el mismo `id` en todos los idiomas. */
+export const GUIDES: Record<Locale, SeoPage[]> = { es: GUIDES_ES, en: GUIDES_EN };

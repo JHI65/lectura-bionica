@@ -23,7 +23,7 @@ describe('importación PDF', () => {
     const blocks = doc.sections[0].blocks;
     expect(blocks[0].kind).toBe('heading');
     expect(blocks.map((b) => b.text).join(' ')).toContain('canción, niño, camión');
-    expect(doc.warnings.some((w) => w.includes('orden del texto'))).toBe(true);
+    expect(doc.warnings.some((w) => w.code === 'PDF_ORDER')).toBe(true);
   });
 });
 
@@ -54,7 +54,7 @@ describe('exportación PDF', () => {
     const doc = (await parseDocument(fileOf(await makeTextPdf(SAMPLE_LINES)))) as PdfDocument;
     doc.sections[0].blocks.push({ kind: 'paragraph', text: 'Texto con símbolo raro: 漢字 y más contenido de prueba.' });
     const result = await exportDocument(doc, DEFAULT_SETTINGS);
-    expect(result.warnings.some((w) => w.includes('sustituido'))).toBe(true);
+    expect(result.warnings.some((w) => w.code === 'PDF_CHARS_REPLACED')).toBe(true);
   });
 });
 
@@ -90,7 +90,7 @@ describe('PDF exportado: contenido, tamaño y memoria', () => {
       warnings: [],
       pageCount: 1,
       extractedChars: 1,
-      sections: [{ id: 'p1', title: 'Página 1', blocks }],
+      sections: [{ id: 'p1', pageNumber: 1, blocks }],
     };
     const result = await exportDocument(doc, DEFAULT_SETTINGS);
     const reopened = await PDFDocument.load(new Uint8Array(await result.blob.arrayBuffer()));

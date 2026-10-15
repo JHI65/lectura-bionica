@@ -17,7 +17,7 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export function AccountPage() {
-  useDocumentMeta('/cuenta');
+  useDocumentMeta();
   const premium = usePremium();
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');

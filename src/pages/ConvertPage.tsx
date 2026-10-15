@@ -2,8 +2,10 @@ import { Converter } from '../components/Converter';
 import { sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 
+// /convertir (solo español): la misma herramienta que la portada. En inglés no
+// existe: la portada ya es el conversor.
 export function ConvertPage() {
-  useDocumentMeta('/convertir');
+  useDocumentMeta();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">

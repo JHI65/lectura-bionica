@@ -11,6 +11,8 @@ interface Props {
   body: string;
   css: string;
   title: string;
+  /** Idioma del documento de la vista previa (atributo lang). */
+  lang?: string;
   /** Cambia al cambiar de documento o sección: entonces sí se recrea el iframe. */
   resetKey: string;
   minHeight?: string;
@@ -33,14 +35,14 @@ function applyContent(frame: HTMLIFrameElement | null, body: string, css: string
   scroller.scrollTop = Math.round(ratio * Math.max(0, newRange));
 }
 
-export function ReaderPreview({ body, css, title, resetKey, minHeight = '70vh' }: Props) {
+export function ReaderPreview({ body, css, title, resetKey, lang = 'es', minHeight = '70vh' }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const latest = useRef({ body, css });
   latest.current = { body, css };
 
   // El documento inicial solo se genera al cambiar de sección.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const initialDocument = useMemo(() => buildPreviewDocument(latest.current.body, latest.current.css), [resetKey]);
+  const initialDocument = useMemo(() => buildPreviewDocument(latest.current.body, latest.current.css, lang), [resetKey]);
 
   useEffect(() => {
     applyContent(frameRef.current, body, css);

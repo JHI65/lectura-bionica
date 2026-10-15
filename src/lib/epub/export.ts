@@ -11,6 +11,8 @@ import type { ReadingSettings } from '../bionic/settings';
 import type { EpubDocument } from '../document';
 import { safeBaseName } from '../files/validate';
 import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import { FILE_SUFFIX } from '../../i18n/locale';
+import type { AppWarning } from '../warnings';
 import { disposeBook, openBook } from './book';
 import { findOpfPath } from './parse';
 import { relativeZipPath } from './paths';
@@ -22,7 +24,7 @@ const CSS_NAME = 'lectura-bionica.css';
 export interface ExportResult {
   blob: Blob;
   fileName: string;
-  warnings: string[];
+  warnings: AppWarning[];
 }
 
 function parseXml(source: string): Document | null {
@@ -70,9 +72,9 @@ function relativeHref(fromFile: string, toFile: string): string {
 }
 
 export async function exportEpub(doc: EpubDocument, settings: ReadingSettings, options: TaskOptions = {}): Promise<ExportResult> {
-  const { signal, onProgress } = options;
+  const { signal, onProgress, locale = 'es' } = options;
   const yieldToUi = createYielder();
-  const warnings: string[] = [];
+  const warnings: AppWarning[] = [];
   const source = await JSZip.loadAsync(doc.original).catch(() => {
     throw new ConversionError('EXPORT_FAILED', 'el original ya no se puede leer');
   });
@@ -87,7 +89,7 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings, o
 
   for (const [index, section] of doc.sections.entries()) {
     throwIfAborted(signal);
-    onProgress?.({ stage: 'Transformando capítulo', done: index, total: doc.sections.length });
+    onProgress?.({ stage: 'epub-transform', done: index, total: doc.sections.length });
     await yieldToUi();
     const original = await zip.file(section.path)?.async('string');
     if (original === undefined) {
@@ -95,12 +97,12 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings, o
     }
     const xhtml = parseXml(original);
     if (!xhtml) {
-      warnings.push(`«${section.title}» no es XHTML estricto: se conserva sin transformar en el EPUB.`);
+      warnings.push({ code: 'EXPORT_NOT_STRICT_XHTML', params: { index: index + 1, title: section.title ?? '' } });
       continue;
     }
     const body = xhtml.getElementsByTagNameNS(XHTML_NS, 'body')[0] ?? xhtml.getElementsByTagNameNS('*', 'body')[0];
     if (!body) {
-      warnings.push(`«${section.title}» no tiene <body>: se conserva sin transformar.`);
+      warnings.push({ code: 'EXPORT_NO_BODY', params: { index: index + 1, title: section.title ?? '' } });
       continue;
     }
 
@@ -170,7 +172,7 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings, o
 
   return {
     blob,
-    fileName: `${safeBaseName(doc.fileName)}-lectura-bionica.epub`,
+    fileName: `${safeBaseName(doc.fileName)}-${FILE_SUFFIX[locale]}.epub`,
     warnings,
   };
 }

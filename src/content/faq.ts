@@ -1,13 +1,17 @@
 import faqData from './faq.json';
 import { config } from '../lib/state/config';
+import type { Locale } from '../i18n/locale';
 
 interface FaqItem {
-  q: string;
-  a: string;
+  id: string;
   premium?: boolean;
+  es: { q: string; a: string };
+  en: { q: string; a: string };
 }
 
-/** Preguntas frecuentes. Las de Premium solo aparecen si Premium está activo. */
-export const FAQ: Array<{ q: string; a: string }> = (faqData as FaqItem[])
-  .filter((item) => !item.premium || config.premiumEnabled)
-  .map((item) => ({ q: item.q, a: item.a.replace('{maxMb}', String(config.maxFileMb)) }));
+/** Preguntas frecuentes en `locale`. Las de Premium solo aparecen si Premium está activo. */
+export function faqFor(locale: Locale): Array<{ q: string; a: string }> {
+  return (faqData as FaqItem[])
+    .filter((item) => !item.premium || config.premiumEnabled)
+    .map((item) => ({ q: item[locale].q, a: item[locale].a.replace('{maxMb}', String(config.maxFileMb)) }));
+}

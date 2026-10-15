@@ -58,6 +58,20 @@ Decisiones relevantes:
 - **Anuncios.** Política única en `src/lib/state/ads.ts`: sin consentimiento de publicidad no se carga **ningún** script de anuncios (ni «no personalizados»: en la UE también usan cookies y requieren consentimiento); Premium verificado nunca ve anuncios; sin identificadores válidos no hay anuncios en producción; en desarrollo aparece un placeholder marcado como tal. Hueco reservado de 280 px para evitar saltos de diseño, siempre fuera del texto leído y lejos de los controles.
 - **Analítica.** Solo con consentimiento y a un endpoint propio (`VITE_ANALYTICS_ENDPOINT`). Los parámetros pasan por una lista blanca: nunca nombres de archivo, texto ni contenido de libros.
 
+## Idiomas
+
+La web está en español (raíz) y en inglés (`/en/`). El idioma lo decide la URL: no hay redirección automática por el idioma del navegador y el selector está siempre visible.
+
+- **Textos de interfaz:** `src/i18n/dict.ts`. `en` se tipa como `typeof es`, así que TypeScript no compila si falta una clave.
+- **Rutas:** `src/content/routes.json`. Cada ruta tiene un `id` estable y su versión en cada idioma; el código enlaza con `href('id')`.
+- **Guías, FAQ y textos legales:** `src/content/seo-pages.ts` (es), `seo-pages.en.ts` (en), `faq.json` y `legal.ts`.
+- **Errores y avisos:** `lib/` emite códigos y parámetros, no texto; cada idioma los redacta.
+- **SEO:** `scripts/seo-build.mjs` genera una página estática por ruta e idioma con `hreflang`, canonical, `og:locale`, datos estructurados y sitemap con alternativas.
+- **Marca:** «Lectura biónica» en español y «Readably» en inglés (coincide con el dominio).
+- **Premium y cuenta** existen solo en español y están apagados.
+
+Para añadir una guía: añade la ruta en `routes.json`, su contenido en cada idioma y su `id` en `GUIDE_IDS` de `src/App.tsx`. Los tests fallan si falta alguna pieza.
+
 ## Variables de entorno
 
 Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
@@ -122,7 +136,7 @@ Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` n
 
 ## Pruebas
 
-`npm test` (151 pruebas) cubre:
+`npm test` (199 pruebas) cubre:
 
 - Algoritmo: tildes, ñ, puntuación, combinaciones Unicode, alfabetos no latinos, cifras, palabras de una letra.
 - DOM: el texto visible no cambia, enlaces y código intactos, idempotencia.
@@ -134,5 +148,6 @@ Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` n
 - Anuncios y consentimiento: sin decidir o rechazado no hay anuncios; Premium nunca los ve; sin identificadores, nada.
 - Analítica: lista blanca de parámetros, sin nombres de archivo; nada se envía sin consentimiento.
 - Límites, cancelación, progreso y errores de memoria.
+- Idiomas: mismas claves en es y en, mensajes para cada código de error y aviso, sin caracteres del español en la versión inglesa, pares hreflang recíprocos y renderizado de cada ruta en ambos idiomas.
 
 Las pruebas de navegador real (Chrome, escritorio y móvil, accesibilidad con axe-core, consentimiento, Pages) y sus resultados están en `docs/lanzamiento.md`. Pendiente: pruebas de las Edge Functions con la CLI de Supabase y eventos de prueba de Stripe, y dispositivos móviles reales.

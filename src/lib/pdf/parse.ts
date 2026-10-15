@@ -5,6 +5,7 @@ import * as pdfjs from 'pdfjs-dist';
 import { ConversionError } from '../files/errors';
 import type { PdfDocument, PdfSection } from '../document';
 import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import type { AppWarning } from '../warnings';
 import { buildBlocks, buildLines, type TextFragment } from './layout';
 
 const MAX_PAGES = 2000;
@@ -59,7 +60,7 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: P
 
     for (let pageNumber = 1; pageNumber <= pagesToRead; pageNumber++) {
       throwIfAborted(signal);
-      onProgress?.({ stage: 'Leyendo página', done: pageNumber - 1, total: pagesToRead });
+      onProgress?.({ stage: 'pdf-page', done: pageNumber - 1, total: pagesToRead });
       await yieldToUi();
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
@@ -83,7 +84,7 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: P
       suspicious += lines.reduce((sum, line) => sum + (line.text.match(/[�-]/g)?.length ?? 0), 0);
       if (blocks.length > 0) {
         pagesWithText++;
-        sections.push({ id: `p${pageNumber}`, title: `Página ${pageNumber}`, blocks });
+        sections.push({ id: `p${pageNumber}`, pageNumber, blocks });
       }
       page.cleanup();
     }
@@ -92,19 +93,15 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: P
       throw new ConversionError('PDF_NO_TEXT');
     }
 
-    const warnings: string[] = [
-      'La reconstrucción sigue el orden del texto del PDF. Columnas, tablas, notas al pie y fórmulas pueden no conservarse. No es una copia idéntica del original.',
-    ];
+    const warnings: AppWarning[] = [{ code: 'PDF_ORDER' }];
     if (pagesWithText / pagesToRead < 0.5) {
-      warnings.push(
-        `Solo ${pagesWithText} de ${pagesToRead} páginas contienen texto seleccionable. Las páginas escaneadas se han omitido y necesitarían OCR.`,
-      );
+      warnings.push({ code: 'PDF_FEW_TEXT_PAGES', params: { withText: pagesWithText, total: pagesToRead } });
     }
     if (suspicious > 0 && suspicious / extractedChars > 0.02) {
-      warnings.push('Algunos caracteres no se han podido decodificar (fuentes incrustadas). Revisa el resultado.');
+      warnings.push({ code: 'PDF_DECODING' });
     }
     if (pageCount > MAX_PAGES) {
-      warnings.push(`El PDF tiene ${pageCount} páginas; solo se han procesado las primeras ${MAX_PAGES}.`);
+      warnings.push({ code: 'PDF_TRUNCATED', params: { pages: pageCount, max: MAX_PAGES } });
     }
 
     const meta = await pdf.getMetadata().catch(() => null);

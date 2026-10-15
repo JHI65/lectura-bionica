@@ -106,7 +106,7 @@ describe('exportación EPUB', () => {
     });
     const doc = (await parseDocument(fileOf(buffer))) as EpubDocument;
     const result = await exportDocument(doc, DEFAULT_SETTINGS);
-    expect(result.warnings.some((w) => w.includes('no es XHTML estricto') || w.includes('roto'))).toBe(true);
+    expect(result.warnings.some((w) => w.code === 'EXPORT_NOT_STRICT_XHTML')).toBe(true);
   });
 });
 
@@ -127,7 +127,7 @@ describe('EPUB ya convertido', () => {
     const { sectionBodyHtml } = await import('../src/lib/preview');
     const off = sectionBodyHtml(doc, doc.sections[0], { ...DEFAULT_SETTINGS, bionicEnabled: false });
     expect(off).not.toContain('<b>');
-    expect(doc.warnings.some((w) => w.includes('ya se había convertido'))).toBe(true);
+    expect(doc.warnings.some((w) => w.code === 'EPUB_PREVIOUSLY_CONVERTED')).toBe(true);
   });
 
   it('al re-exportarlo no duplica la hoja de estilo ni el texto', async () => {

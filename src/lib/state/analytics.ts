@@ -19,7 +19,7 @@ export type AnalyticsEvent =
 
 type ParamValue = string | number | boolean;
 
-const ALLOWED_PARAMS = new Set(['format', 'intensity', 'error_code', 'plan', 'bionic', 'returning', 'page', 'source']);
+const ALLOWED_PARAMS = new Set(['format', 'intensity', 'error_code', 'plan', 'bionic', 'returning', 'page', 'source', 'lang']);
 const ALLOWED_VALUES: Record<string, ReadonlySet<string>> = {
   format: new Set(['epub', 'pdf']),
   error_code: new Set([
@@ -28,6 +28,7 @@ const ALLOWED_VALUES: Record<string, ReadonlySet<string>> = {
   ]),
   intensity: new Set(['suave', 'media', 'alta']),
   plan: new Set(['premium']),
+  lang: new Set(['es', 'en']),
 };
 
 /**

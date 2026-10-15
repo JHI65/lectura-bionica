@@ -8,19 +8,21 @@ import { SettingsPanel } from './SettingsPanel';
 import { StepTracker } from './StepTracker';
 import { btnPrimary, btnSecondary, card, linkBtn } from './ui';
 import { useSettings } from '../hooks/useSettings';
+import { useI18n } from '../i18n/useI18n';
 import type { Progress } from '../lib/async';
-import { ConversionError, toConversionError } from '../lib/files/errors';
+import { ConversionError, toConversionError, type ConversionErrorCode, type ErrorParams } from '../lib/files/errors';
 import { formatBytes } from '../lib/files/validate';
-import type { ParsedDocument } from '../lib/document';
+import type { EpubSection, ParsedDocument, PdfSection } from '../lib/document';
 import { downloadBlob } from '../lib/download';
 import { previewCss, sectionBodyHtml } from '../lib/preview';
 import { track } from '../lib/state/analytics';
+import type { AppWarning } from '../lib/warnings';
 
 type Phase = 'idle' | 'reading' | 'ready' | 'exporting' | 'done' | 'error';
 
 interface Failure {
-  code: string;
-  message: string;
+  code: ConversionErrorCode;
+  params: ErrorParams;
 }
 
 // Paso activo del indicador: 0 Importar, 1 Extraer, 2 Lectura biónica, 3 Personalizar, 4 Exportar.
@@ -29,7 +31,7 @@ const STEP_BY_PHASE: Record<Phase, number> = { idle: 0, reading: 1, error: 0, re
 function failureFrom(error: unknown, fallback: 'UNKNOWN' | 'EXPORT_FAILED'): Failure {
   const conversion = error instanceof ConversionError ? error : toConversionError(error, fallback);
   track('conversion_error', { error_code: conversion.code });
-  return { code: conversion.code, message: conversion.message };
+  return { code: conversion.code, params: conversion.params };
 }
 
 function isCancelled(error: unknown): boolean {
@@ -37,22 +39,32 @@ function isCancelled(error: unknown): boolean {
 }
 
 function ProgressPanel({ progress, onCancel, label }: { progress: Progress | null; onCancel: () => void; label: string }) {
+  const { t } = useI18n();
   const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : null;
   return (
     <div role="status" aria-live="polite" className="space-y-3">
       <p className="text-sm font-medium">
-        {progress ? `${progress.stage} ${Math.min(progress.done + 1, progress.total)} de ${progress.total}` : label}
+        {progress
+          ? t.converter.progressOf(t.converter.stage[progress.stage], Math.min(progress.done + 1, progress.total), progress.total)
+          : label}
       </p>
-      <progress
-        className="h-2 w-full overflow-hidden rounded-full accent-brand"
-        max={100}
-        value={percent ?? undefined}
-        aria-label="Progreso"
-      />
+      <progress className="h-2 w-full overflow-hidden rounded-full accent-brand" max={100} value={percent ?? undefined} aria-label={t.converter.progress} />
       <button type="button" className={btnSecondary} onClick={onCancel}>
-        Cancelar
+        {t.converter.cancel}
       </button>
     </div>
+  );
+}
+
+function WarningList({ warnings }: { warnings: AppWarning[] }) {
+  const { t } = useI18n();
+  return (
+    <ul className="list-disc space-y-1 pl-5">
+      {warnings.map((w) => {
+        const text = t.warnings[w.code](w.params ?? {});
+        return <li key={`${w.code}:${text}`}>{text}</li>;
+      })}
+    </ul>
   );
 }
 
@@ -62,6 +74,7 @@ function ProgressPanel({ progress, onCancel, label }: { progress: Progress | nul
  * de forma diferida al subir el primer archivo, para no pesar en la portada.
  */
 export function Converter() {
+  const { t, locale, numberLocale, href } = useI18n();
   const { settings, update, reset } = useSettings();
   // Los sliders siguen respondiendo mientras la vista previa se recalcula.
   const deferredSettings = useDeferredValue(settings);
@@ -71,7 +84,7 @@ export function Converter() {
   const [sectionIndex, setSectionIndex] = useState(0);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [exportFailure, setExportFailure] = useState<Failure | null>(null);
-  const [exportWarnings, setExportWarnings] = useState<string[]>([]);
+  const [exportWarnings, setExportWarnings] = useState<AppWarning[]>([]);
   const [doneFile, setDoneFile] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState(0);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -85,16 +98,21 @@ export function Converter() {
   const safeIndex = doc ? Math.min(sectionIndex, doc.sections.length - 1) : 0;
   const section = doc?.sections[safeIndex];
 
+  const sectionLabel = (value: EpubSection | PdfSection, index: number): string => {
+    if ('pageNumber' in value) return t.converter.pdfPage(value.pageNumber);
+    return value.title ?? t.converter.sectionFallback(index + 1);
+  };
+
   // La negrita solo se recalcula si cambia la cantidad de letras o el interruptor;
   // la tipografía y el tema se aplican como CSS, sin volver a transformar.
   const { boldRatio, bionicEnabled } = deferredSettings;
   const previewBody = useMemo(() => {
     if (!doc) return '';
     const current = doc.sections[Math.min(sectionIndex, doc.sections.length - 1)];
-    if (!current) return '<p>Este documento no tiene texto que mostrar.</p>';
+    if (!current) return `<p>${t.converter.noText}</p>`;
     return sectionBodyHtml(doc, current, { ...deferredSettings, boldRatio, bionicEnabled });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, sectionIndex, boldRatio, bionicEnabled]);
+  }, [doc, sectionIndex, boldRatio, bionicEnabled, locale]);
   const css = useMemo(() => previewCss(settings), [settings]);
 
   const cancel = () => abortRef.current?.abort();
@@ -112,14 +130,14 @@ export function Converter() {
     setDoc(null);
     setProgress(null);
     setFileSize(file.size);
-    track('conversion_started');
+    track('conversion_started', { lang: locale });
     try {
       const { parseDocument } = await import('../lib/convert');
       const parsed = await parseDocument(file, { signal: controller.signal, onProgress: setProgress });
       setDoc(parsed);
       setSectionIndex(0);
       setPhase('ready');
-      track('format_imported', { format: parsed.kind });
+      track('format_imported', { format: parsed.kind, lang: locale });
     } catch (error) {
       if (isCancelled(error)) {
         setPhase('idle');
@@ -145,13 +163,13 @@ export function Converter() {
     setProgress(null);
     try {
       const { exportDocument } = await import('../lib/convert');
-      const result = await exportDocument(doc, settings, { signal: controller.signal, onProgress: setProgress });
+      const result = await exportDocument(doc, settings, { signal: controller.signal, onProgress: setProgress, locale });
       downloadBlob(result.blob, result.fileName);
       setExportWarnings(result.warnings);
       setDoneFile(result.fileName);
       setPhase('done');
-      track('conversion_completed', { format: doc.kind, intensity: settings.intensity, bionic: settings.bionicEnabled });
-      track('download_completed', { format: doc.kind });
+      track('conversion_completed', { format: doc.kind, intensity: settings.intensity, bionic: settings.bionicEnabled, lang: locale });
+      track('download_completed', { format: doc.kind, lang: locale });
     } catch (error) {
       // El documento se conserva: el usuario puede ajustar y reintentar.
       if (!isCancelled(error)) setExportFailure(failureFrom(error, 'EXPORT_FAILED'));
@@ -174,6 +192,7 @@ export function Converter() {
 
   const isWorking = phase === 'reading' || phase === 'exporting';
   const noun = doc?.kind === 'epub' ? 'EPUB' : 'PDF';
+  const message = (f: Failure) => t.errors[f.code](f.params, numberLocale);
 
   return (
     <div className="space-y-8">
@@ -183,18 +202,16 @@ export function Converter() {
         <div>
           <section aria-labelledby="import-title" className="space-y-4">
             <h2 id="import-title" className="sr-only">
-              Importar documento
+              {t.dropzone.title}
             </h2>
             <Dropzone onFile={handleFile} />
             <div className={`${card} text-sm leading-relaxed text-ink-soft`}>
-              <p className="font-semibold text-ink">Tu documento no sale de tu dispositivo</p>
-              <p className="mt-1">
-                El archivo se procesa en tu navegador. No lo subimos a ningún servidor ni lo guardamos. Solo se recuerdan tus ajustes visuales.
-              </p>
+              <p className="font-semibold text-ink">{t.converter.privacyTitle}</p>
+              <p className="mt-1">{t.converter.privacyBody}</p>
               <p className="mt-3">
-                ¿Tienes un PDF escaneado? Necesita OCR antes de convertirse; te lo indicaremos si ocurre.{' '}
-                <Link className={linkBtn} to="/convertir-pdf-a-lectura-bionica">
-                  Más sobre PDF
+                {t.converter.ocrNote}{' '}
+                <Link className={linkBtn} to={href('guide-pdf')}>
+                  {t.converter.ocrLink}
                 </Link>
               </p>
             </div>
@@ -205,25 +222,25 @@ export function Converter() {
       {phase === 'reading' && (
         <div className={`${card} mx-auto flex max-w-xl flex-col items-center gap-4 py-12 text-center`}>
           <span className="h-10 w-10 animate-spin rounded-full border-4 border-brand-soft border-t-brand" aria-hidden="true" />
-          <p className="text-lg font-semibold">Leyendo el documento…</p>
-          <p className="max-w-md text-sm text-ink-soft">
-            Extraemos el texto en tu dispositivo ({formatBytes(fileSize)}). Los documentos grandes pueden tardar unos segundos.
-          </p>
+          <p className="text-lg font-semibold">{t.converter.readingTitle}</p>
+          <p className="max-w-md text-sm text-ink-soft">{t.converter.readingBody(formatBytes(fileSize, numberLocale))}</p>
           <div className="w-full max-w-sm text-left">
-            <ProgressPanel progress={progress} onCancel={cancel} label="Preparando…" />
+            <ProgressPanel progress={progress} onCancel={cancel} label={t.converter.preparing} />
           </div>
         </div>
       )}
 
       {phase === 'error' && failure && (
         <div className="space-y-6">
-          <Alert tone="error" title="No se ha podido convertir este documento">
-            <p>{failure.message}</p>
-            <p className="mt-2 text-xs opacity-80">Código: {failure.code}</p>
+          <Alert tone="error" title={t.converter.errorTitle}>
+            <p>{message(failure)}</p>
+            <p className="mt-2 text-xs opacity-80">
+              {t.converter.codeLabel}: {failure.code}
+            </p>
           </Alert>
           <Dropzone onFile={handleFile} />
           <button type="button" className={btnSecondary} onClick={restart}>
-            Empezar de nuevo
+            {t.converter.restart}
           </button>
         </div>
       )}
@@ -237,11 +254,11 @@ export function Converter() {
                   {doc.title}
                 </h2>
                 <p className="text-sm text-ink-soft">
-                  {noun} · {formatBytes(fileSize)} · {doc.sections.length} {doc.kind === 'epub' ? 'secciones' : 'páginas con texto'}
+                  {t.converter.summary(noun, formatBytes(fileSize, numberLocale), doc.sections.length, doc.kind)}
                 </p>
               </div>
               <button type="button" className={btnSecondary} onClick={restart}>
-                Cambiar de documento
+                {t.converter.changeDocument}
               </button>
             </div>
 
@@ -252,12 +269,12 @@ export function Converter() {
                   className={`${btnSecondary} px-3`}
                   onClick={() => setSectionIndex((i) => Math.max(0, i - 1))}
                   disabled={safeIndex === 0}
-                  aria-label="Sección anterior"
+                  aria-label={t.converter.previous}
                 >
                   ←
                 </button>
                 <label className="sr-only" htmlFor="section-select">
-                  Elegir sección
+                  {t.converter.chooseSection}
                 </label>
                 <select
                   id="section-select"
@@ -267,7 +284,7 @@ export function Converter() {
                 >
                   {doc.sections.map((s, i) => (
                     <option key={s.id} value={i}>
-                      {s.title}
+                      {sectionLabel(s, i)}
                     </option>
                   ))}
                 </select>
@@ -276,7 +293,7 @@ export function Converter() {
                   className={`${btnSecondary} px-3`}
                   onClick={() => setSectionIndex((i) => Math.min(doc.sections.length - 1, i + 1))}
                   disabled={safeIndex >= doc.sections.length - 1}
-                  aria-label="Sección siguiente"
+                  aria-label={t.converter.next}
                 >
                   →
                 </button>
@@ -286,56 +303,51 @@ export function Converter() {
             <ReaderPreview
               body={previewBody}
               css={css}
+              lang={locale}
               resetKey={`${doc.fileName}:${section?.id ?? ''}`}
-              title={`Vista previa: ${section?.title ?? doc.title}`}
+              title={t.converter.previewTitle(section ? sectionLabel(section, safeIndex) : doc.title)}
             />
 
             {doc.warnings.length > 0 && (
-              <Alert tone="info" title="Avisos sobre el resultado">
-                <ul className="list-disc space-y-1 pl-5">
-                  {doc.warnings.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
+              <Alert tone="info" title={t.converter.warningsTitle}>
+                <WarningList warnings={doc.warnings} />
               </Alert>
             )}
           </section>
 
-          <aside className="space-y-6" aria-label="Personalizar y exportar">
+          <aside className="space-y-6" aria-label={t.converter.settingsAria}>
             <div className={card}>
-              <h2 className="mb-4 text-base font-semibold">Personalizar lectura</h2>
+              <h2 className="mb-4 text-base font-semibold">{t.converter.settingsTitle}</h2>
               <SettingsPanel settings={settings} onChange={update} onReset={reset} />
             </div>
 
             <div className={`${card} space-y-4`}>
-              <h2 className="text-base font-semibold">Descargar</h2>
+              <h2 className="text-base font-semibold">{t.converter.downloadTitle}</h2>
               <p className="text-sm leading-relaxed text-ink-soft">
-                {doc.kind === 'epub'
-                  ? 'Genera un EPUB con el texto transformado. Conserva capítulos, imágenes y la estructura original, e incluye tu tipografía elegida.'
-                  : 'Genera un PDF reformateado a partir del texto extraído. Es una reconstrucción: no es una copia idéntica del original.'}
+                {doc.kind === 'epub' ? t.converter.downloadEpub : t.converter.downloadPdf}
               </p>
               {exportFailure && (
-                <Alert tone="error" title="No se ha podido generar el archivo">
-                  <p>{exportFailure.message}</p>
-                  <p className="mt-1 text-xs opacity-80">Código: {exportFailure.code}</p>
+                <Alert tone="error" title={t.converter.exportErrorTitle}>
+                  <p>{message(exportFailure)}</p>
+                  <p className="mt-1 text-xs opacity-80">
+                    {t.converter.codeLabel}: {exportFailure.code}
+                  </p>
                 </Alert>
               )}
               {phase === 'exporting' ? (
-                <ProgressPanel progress={progress} onCancel={cancel} label="Generando archivo…" />
+                <ProgressPanel progress={progress} onCancel={cancel} label={t.converter.generating} />
               ) : (
                 <button type="button" className={`${btnPrimary} w-full`} onClick={handleExport} disabled={isWorking}>
-                  {`Descargar ${noun} transformado`}
+                  {t.converter.download(noun)}
                 </button>
               )}
               {phase === 'done' && doneFile && (
-                <Alert tone="success" title="Descarga iniciada">
+                <Alert tone="success" title={t.converter.doneTitle}>
                   <p className="break-all">{doneFile}</p>
                   {exportWarnings.length > 0 && (
-                    <ul className="mt-2 list-disc pl-5">
-                      {exportWarnings.map((w) => (
-                        <li key={w}>{w}</li>
-                      ))}
-                    </ul>
+                    <div className="mt-2">
+                      <WarningList warnings={exportWarnings} />
+                    </div>
                   )}
                 </Alert>
               )}
@@ -345,7 +357,7 @@ export function Converter() {
       )}
 
       {/* Zona secundaria: solo tras completar la conversión, lejos de los controles. */}
-      {phase === 'done' && <AdSlot label="Publicidad" className="mx-auto max-w-3xl" />}
+      {phase === 'done' && <AdSlot className="mx-auto max-w-3xl" />}
     </div>
   );
 }

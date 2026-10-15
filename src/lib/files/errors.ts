@@ -36,13 +36,22 @@ const MESSAGES: Record<ConversionErrorCode, string> = {
   UNKNOWN: 'Ha ocurrido un error inesperado al procesar el documento.',
 };
 
+/** Parámetros para que la interfaz redacte el mensaje en su idioma. */
+export type ErrorParams = Record<string, number | string>;
+
+/**
+ * `message` es un texto de respaldo en español para depuración y tests. La
+ * interfaz muestra el mensaje del idioma activo a partir de `code` y `params`.
+ */
 export class ConversionError extends Error {
   readonly code: ConversionErrorCode;
+  readonly params: ErrorParams;
 
-  constructor(code: ConversionErrorCode, detail?: string) {
+  constructor(code: ConversionErrorCode, detail?: string, params: ErrorParams = {}) {
     super(detail ? `${MESSAGES[code]} (${detail})` : MESSAGES[code]);
     this.name = 'ConversionError';
     this.code = code;
+    this.params = params;
   }
 }
 

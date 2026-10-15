@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { AdSlot } from '../components/AdSlot';
 import { btnPrimary, card, linkBtn, sectionTitle } from '../components/ui';
-import { normalizePath, useDocumentMeta } from '../hooks/useDocumentMeta';
 import { LEGAL_DOCS } from '../content/legal';
-import { SEO_PAGES } from '../content/seo-pages';
+import { findByPath, normalizePath } from '../content/routes';
+import { GUIDES } from '../content/seo-pages';
+import { useDocumentMeta } from '../hooks/useDocumentMeta';
+import { useI18n } from '../i18n/useI18n';
 
 /** Identificador estable para anclas a partir de un encabezado. */
 export function slugify(text: string): string {
@@ -18,13 +20,16 @@ export function slugify(text: string): string {
 
 /** Página de guía: una intención de búsqueda por ruta, sin contenido duplicado. */
 export function GuidePage() {
-  const pathname = normalizePath(useLocation().pathname);
-  const page = SEO_PAGES.find((p) => p.path === pathname);
-  useDocumentMeta(pathname);
+  const { pathname } = useLocation();
+  const { t, locale, href } = useI18n();
+  const match = findByPath(normalizePath(pathname));
+  const guides = GUIDES[locale];
+  const page = match ? guides.find((g) => g.id === match.entry.id) : undefined;
+  useDocumentMeta();
 
   if (!page) return <NotFoundPage />;
 
-  const related = SEO_PAGES.filter((p) => p.path !== page.path).slice(0, 4);
+  const related = guides.filter((g) => g.id !== page.id).slice(0, 4);
   const showToc = page.sections.length >= 5;
 
   return (
@@ -32,12 +37,14 @@ export function GuidePage() {
       <header className="space-y-4">
         <h1 className={sectionTitle}>{page.h1}</h1>
         <p className="text-lg leading-relaxed text-ink-soft">{page.intro}</p>
-        <p className="text-sm text-ink-soft">Última actualización: {page.updated}</p>
+        <p className="text-sm text-ink-soft">
+          {t.guide.updated}: {page.updated}
+        </p>
       </header>
 
       {showToc && (
-        <nav aria-label="En esta guía" className={`${card} text-sm`}>
-          <p className="font-semibold">En esta guía</p>
+        <nav aria-label={t.guide.toc} className={`${card} text-sm`}>
+          <p className="font-semibold">{t.guide.toc}</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5">
             {page.sections.map((section) => (
               <li key={section.heading}>
@@ -48,8 +55,8 @@ export function GuidePage() {
             ))}
             {page.faq && page.faq.length > 0 && (
               <li>
-                <a className={linkBtn} href="#preguntas-frecuentes">
-                  Preguntas frecuentes
+                <a className={linkBtn} href="#faq">
+                  {t.guide.faq}
                 </a>
               </li>
             )}
@@ -70,9 +77,7 @@ export function GuidePage() {
               </p>
             ))}
             {section.list && (
-              <ListTag
-                className={`${section.ordered ? 'list-decimal' : 'list-disc'} space-y-2 pl-6 leading-relaxed text-ink-soft`}
-              >
+              <ListTag className={`${section.ordered ? 'list-decimal' : 'list-disc'} space-y-2 pl-6 leading-relaxed text-ink-soft`}>
                 {section.list.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
@@ -83,9 +88,9 @@ export function GuidePage() {
       })}
 
       {page.faq && page.faq.length > 0 && (
-        <section aria-labelledby="preguntas-frecuentes" className="space-y-4">
-          <h2 id="preguntas-frecuentes" className="scroll-mt-6 text-xl font-semibold">
-            Preguntas frecuentes
+        <section aria-labelledby="faq" className="space-y-4">
+          <h2 id="faq" className="scroll-mt-6 text-xl font-semibold">
+            {t.guide.faq}
           </h2>
           <dl className="space-y-5">
             {page.faq.map((item) => (
@@ -99,35 +104,37 @@ export function GuidePage() {
       )}
 
       <div className={`${card} flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between`}>
-        <p className="font-medium">Pruébalo con tu propio documento. No necesitas registrarte.</p>
-        <Link to={page.cta.to} className={btnPrimary}>
+        <p className="font-medium">{t.guide.tryIt}</p>
+        <Link to={href('home')} className={btnPrimary}>
           {page.cta.label}
         </Link>
       </div>
 
-      <nav aria-label="Otras guías" className="space-y-3">
-        <h2 className="text-lg font-semibold">Otras guías</h2>
+      <nav aria-label={t.guide.others} className="space-y-3">
+        <h2 className="text-lg font-semibold">{t.guide.others}</h2>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {related.map((p) => (
-            <li key={p.path}>
-              <Link className={`${linkBtn} block rounded-xl border border-slate-200 bg-white p-4 text-sm font-medium`} to={p.path}>
-                {p.h1}
+          {related.map((g) => (
+            <li key={g.id}>
+              <Link className={`${linkBtn} block rounded-xl border border-slate-200 bg-white p-4 text-sm font-medium`} to={href(g.id)}>
+                {g.h1}
               </Link>
             </li>
           ))}
         </ul>
       </nav>
 
-      <AdSlot label="Publicidad" />
+      <AdSlot />
     </article>
   );
 }
 
 /** Documentos legales. Los datos del titular se rellenan en src/content/legal.ts. */
 export function LegalPage() {
-  const pathname = normalizePath(useLocation().pathname);
-  const doc = LEGAL_DOCS.find((d) => d.path === pathname);
-  useDocumentMeta(pathname);
+  const { pathname } = useLocation();
+  const { t, locale } = useI18n();
+  const match = findByPath(normalizePath(pathname));
+  const doc = match ? LEGAL_DOCS[locale].find((d) => d.id === match.entry.id) : undefined;
+  useDocumentMeta();
 
   if (!doc) return <NotFoundPage />;
 
@@ -135,7 +142,9 @@ export function LegalPage() {
     <article className="mx-auto max-w-3xl space-y-8 px-4 py-12">
       <header className="space-y-2">
         <h1 className={sectionTitle}>{doc.title}</h1>
-        <p className="text-sm text-ink-soft">Última revisión: {doc.updated}</p>
+        <p className="text-sm text-ink-soft">
+          {t.legal.updated}: {doc.updated}
+        </p>
       </header>
       {doc.sections.map((section) => (
         <section key={section.heading} className="space-y-3">
@@ -159,13 +168,14 @@ export function LegalPage() {
 }
 
 export function NotFoundPage() {
-  useDocumentMeta('/404', { title: 'Página no encontrada', description: 'La página que buscas no existe.' });
+  const { t, href } = useI18n();
+  useDocumentMeta({ title: t.notFound.title, description: t.notFound.description, noindex: true });
   return (
     <div className="mx-auto max-w-xl space-y-4 px-4 py-20 text-center">
-      <h1 className={sectionTitle}>Página no encontrada</h1>
-      <p className="text-ink-soft">La dirección no existe o se ha movido.</p>
-      <Link to="/" className={btnPrimary}>
-        Volver al inicio
+      <h1 className={sectionTitle}>{t.notFound.title}</h1>
+      <p className="text-ink-soft">{t.notFound.body}</p>
+      <Link to={href('home')} className={btnPrimary}>
+        {t.notFound.home}
       </Link>
     </div>
   );

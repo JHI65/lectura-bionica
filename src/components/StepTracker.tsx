@@ -1,10 +1,11 @@
 // Indicador de los pasos del flujo. Solo informa: no es navegable.
-export const STEPS = ['Importar', 'Extraer', 'Lectura biónica', 'Personalizar', 'Exportar'] as const;
+import { useI18n } from '../i18n/useI18n';
 
 export function StepTracker({ current }: { current: number }) {
+  const { t } = useI18n();
   return (
-    <ol className="flex flex-wrap gap-2 text-sm" aria-label="Pasos del proceso">
-      {STEPS.map((label, index) => {
+    <ol className="flex flex-wrap gap-2 text-sm" aria-label={t.steps.aria}>
+      {t.steps.labels.map((label, index) => {
         const state = index < current ? 'done' : index === current ? 'current' : 'todo';
         return (
           <li
@@ -20,7 +21,7 @@ export function StepTracker({ current }: { current: number }) {
           >
             <span className="font-semibold tabular-nums">{index + 1}</span>
             <span>{label}</span>
-            {state === 'done' && <span className="sr-only">(completado)</span>}
+            {state === 'done' && <span className="sr-only">{t.steps.done}</span>}
           </li>
         );
       })}

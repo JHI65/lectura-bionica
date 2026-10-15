@@ -7,6 +7,7 @@ import { sanitizeTree } from '../html/sanitize';
 import { removeBionicMarkup } from '../html/transform';
 import type { EpubDocument, EpubSection } from '../document';
 import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import type { AppWarning } from '../warnings';
 import { disposeBook, openBook, type EpubBook } from './book';
 import { extensionOf, resolveZipPath } from './paths';
 
@@ -85,7 +86,7 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: 
     throw new ConversionError('EPUB_INVALID', error instanceof Error ? error.message : undefined);
   }
 
-  const warnings: string[] = [];
+  const warnings: AppWarning[] = [];
   try {
     const metadata = await book.loaded.metadata;
     const navigation = await book.loaded.navigation;
@@ -104,19 +105,19 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: 
 
     for (const [index, item] of items.entries()) {
       throwIfAborted(signal);
-      onProgress?.({ stage: 'Leyendo capítulo', done: index, total: items.length });
+      onProgress?.({ stage: 'epub-chapter', done: index, total: items.length });
       await yieldToUi();
       const path = decodeZipPath(item.url);
       const source = await archive.getText(item.url);
       if (!source) {
-        warnings.push(`Un capítulo (${path}) no se pudo leer y se ha omitido.`);
+        warnings.push({ code: 'EPUB_UNREADABLE_CHAPTER', params: { path } });
         continue;
       }
 
       const doc = parseXhtml(source);
       const body = bodyOf(doc);
       if (!body) {
-        warnings.push(`Un capítulo (${path}) no tiene contenido legible.`);
+        warnings.push({ code: 'EPUB_NO_BODY', params: { path } });
         continue;
       }
 
@@ -154,21 +155,19 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: 
       const tocLabel = toc.find((entry) => entry.href && path.endsWith(entry.href.replace(/^\.?\/*/, '')))?.label;
       sections.push({
         id: `s${sections.length + 1}`,
-        title: firstHeading(body) ?? tocLabel ?? `Sección ${sections.length + 1}`,
+        title: firstHeading(body) ?? tocLabel ?? null,
         html,
         path,
       });
     }
 
     if (imagesOmitted > 0) {
-      warnings.push(
-        `${imagesOmitted} imagen(es) no se muestran en la vista previa por su tamaño o formato. Se conservan en el EPUB descargado.`,
-      );
+      warnings.push({ code: 'EPUB_IMAGES_OMITTED', params: { count: imagesOmitted } });
     }
     if (previouslyConverted) {
-      warnings.push('Este EPUB ya se había convertido. Se ha quitado la negrita anterior para aplicar tus ajustes actuales.');
+      warnings.push({ code: 'EPUB_PREVIOUSLY_CONVERTED' });
     }
-    if (skippedEmpty > 0) warnings.push(`${skippedEmpty} sección(es) sin texto (portadas, imágenes) se han omitido de la vista previa.`);
+    if (skippedEmpty > 0) warnings.push({ code: 'EPUB_EMPTY_SECTIONS', params: { count: skippedEmpty } });
     if (sections.length === 0) throw new ConversionError('EPUB_NO_CONTENT');
 
     disposeBook(book);

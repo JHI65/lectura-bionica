@@ -1,8 +1,12 @@
 // Utilidades para que los procesos largos no congelen la interfaz y se puedan cancelar.
 import { ConversionError } from './files/errors';
+import type { Locale } from '../i18n/locale';
+
+/** Etapa en curso. La interfaz la redacta en su idioma. */
+export type ProgressStage = 'pdf-page' | 'epub-chapter' | 'epub-transform' | 'pdf-build';
 
 export interface Progress {
-  stage: string;
+  stage: ProgressStage;
   done: number;
   total: number;
 }
@@ -10,6 +14,8 @@ export interface Progress {
 export interface TaskOptions {
   signal?: AbortSignal;
   onProgress?: (progress: Progress) => void;
+  /** Idioma de la interfaz. Solo lo usan los exportadores (marca y nombre del archivo). */
+  locale?: Locale;
 }
 
 export function throwIfAborted(signal?: AbortSignal): void {

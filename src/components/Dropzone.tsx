@@ -1,6 +1,6 @@
 // Zona de carga accesible: arrastrar, o pulsar/teclear para elegir archivo.
 import { useState, type DragEvent } from 'react';
-
+import { useI18n } from '../i18n/useI18n';
 import { config } from '../lib/state/config';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function Dropzone({ onFile, disabled = false, accept = '.epub,.pdf,application/epub+zip,application/pdf' }: Props) {
+  const { t } = useI18n();
   const [dragging, setDragging] = useState(false);
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -42,13 +43,11 @@ export function Dropzone({ onFile, disabled = false, accept = '.epub,.pdf,applic
           e.target.value = '';
           if (file) onFile(file);
         }}
-        aria-label="Seleccionar documento EPUB o PDF"
+        aria-label={t.dropzone.aria}
       />
-      <span className="text-lg font-semibold text-ink">Arrastra tu EPUB o PDF aquí</span>
-      <span className="text-sm text-ink-soft">o pulsa para elegir un archivo desde tu dispositivo</span>
-      <span className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-ink-soft">
-        EPUB o PDF con texto seleccionable · hasta {config.maxFileMb} MB
-      </span>
+      <span className="text-lg font-semibold text-ink">{t.dropzone.title}</span>
+      <span className="text-sm text-ink-soft">{t.dropzone.hint}</span>
+      <span className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-ink-soft">{t.dropzone.chip(config.maxFileMb)}</span>
     </label>
   );
 }

@@ -44,8 +44,11 @@ describe('validateFile', () => {
     big.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
     const error = await validateFile(fileOf([big], 'enorme.pdf')).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConversionError);
-    expect((error as ConversionError).message).toMatch(/21 MB/);
-    expect((error as ConversionError).message).toMatch(/20 MB/);
+    // Los tamaños viajan como parámetros: cada idioma redacta el mensaje.
+    const { code, params } = error as ConversionError;
+    expect(code).toBe('FILE_TOO_LARGE');
+    expect(params.sizeBytes).toBe(21 * 1024 * 1024);
+    expect(params.maxBytes).toBe(20 * 1024 * 1024);
   });
 
   it('un archivo justo en el límite se acepta', async () => {
@@ -110,7 +113,7 @@ describe('cancelación, progreso y errores de memoria', () => {
     const stages: string[] = [];
     await parseDocument(fileOf([buffer], 'a.pdf'), { onProgress: (p) => stages.push(`${p.stage} ${p.done}/${p.total}`) });
     expect(stages.length).toBeGreaterThan(0);
-    expect(stages[0]).toMatch(/Leyendo página 0\/1/);
+    expect(stages[0]).toBe('pdf-page 0/1');
   });
 
   it('los fallos de memoria se traducen a un mensaje comprensible', async () => {

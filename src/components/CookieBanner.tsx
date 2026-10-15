@@ -5,9 +5,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OPEN_COOKIES_EVENT, getConsent, saveConsent } from '../lib/state/consent';
 import { useConsent } from '../hooks/useConsent';
+import { useI18n } from '../i18n/useI18n';
 import { btnPrimary, btnSecondary, linkBtn } from './ui';
 
 export function CookieBanner() {
+  const { t, href } = useI18n();
+  const c = t.cookies;
   const consent = useConsent();
   const [forced, setForced] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -46,12 +49,12 @@ export function CookieBanner() {
       <div className="mx-auto flex max-w-5xl flex-col gap-3 md:flex-row md:items-center md:gap-6">
         <div className="flex-1 text-sm leading-relaxed text-ink-soft">
           <h2 id="cookie-title" className="text-sm font-semibold text-ink">
-            Tu privacidad, tu elección
+            {c.title}
           </h2>
           <p className="mt-0.5">
-            Tus documentos nunca salen de tu dispositivo. La analítica y la publicidad solo se cargan si las aceptas.{' '}
-            <Link className={linkBtn} to="/cookies">
-              Más información
+            {c.text}{' '}
+            <Link className={linkBtn} to={href('cookies')}>
+              {c.more}
             </Link>
             {' · '}
             <button
@@ -61,20 +64,20 @@ export function CookieBanner() {
               aria-controls="cookie-options"
               onClick={() => setExpanded((v) => !v)}
             >
-              {expanded ? 'Ocultar opciones' : 'Elegir por categoría'}
+              {expanded ? c.hide : c.choose}
             </button>
           </p>
 
           {expanded && (
             <fieldset id="cookie-options" className="mt-2 flex flex-wrap gap-x-6">
-              <legend className="sr-only">Cookies opcionales</legend>
+              <legend className="sr-only">{c.legend}</legend>
               <label className="flex min-h-[44px] items-center gap-2">
                 <input type="checkbox" className="h-5 w-5 accent-brand" checked={analytics} onChange={(e) => setAnalytics(e.target.checked)} />
-                Analítica anónima
+                {c.analytics}
               </label>
               <label className="flex min-h-[44px] items-center gap-2">
                 <input type="checkbox" className="h-5 w-5 accent-brand" checked={ads} onChange={(e) => setAds(e.target.checked)} />
-                Publicidad (Google AdSense)
+                {c.ads}
               </label>
             </fieldset>
           )}
@@ -82,15 +85,15 @@ export function CookieBanner() {
 
         <div className="grid grid-cols-2 gap-2 md:flex md:shrink-0">
           <button type="button" className={`${btnSecondary} px-3 md:px-5`} onClick={() => save({ analytics: false, ads: false })}>
-            Rechazar opcionales
+            {c.reject}
           </button>
           {expanded && (
             <button type="button" className={`${btnSecondary} px-3 md:px-5`} onClick={() => save({ analytics, ads })}>
-              Guardar mi elección
+              {c.save}
             </button>
           )}
           <button type="button" className={`${btnPrimary} px-3 md:px-5`} onClick={() => save({ analytics: true, ads: true })}>
-            Aceptar todo
+            {c.accept}
           </button>
         </div>
       </div>

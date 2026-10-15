@@ -15,7 +15,7 @@ const INCLUDED = [
 ];
 
 export function PremiumPage() {
-  useDocumentMeta('/premium');
+  useDocumentMeta();
   const premium = usePremium();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -6,7 +6,7 @@ Estado a 2026-10-15. Premium, cuentas y pagos están **desactivados** (`VITE_PRE
 
 ```bash
 cd ~/Dev/lectura-bionica
-npm test && npm run build         # 151 pruebas + tipos + build
+npm test && npm run build         # 199 pruebas + tipos + build
 git add -A && git commit -m "..."
 git push origin main
 npm run deploy:pages              # compila con la base de Pages y sube a gh-pages
@@ -34,7 +34,7 @@ Antes de la corrección de hoy, el PDF de 400 páginas llegaba a **677 MB** y 10
 
 | Prueba | Resultado |
 |---|---|
-| `npm test` (vitest, jsdom) | 151/151 |
+| `npm test` (vitest, jsdom) | 199/199 |
 | `tsc --noEmit` | sin errores |
 | Chrome real, escritorio y móvil (390×844): flujo EPUB y PDF, errores, cancelar, descarga | 40/40 |
 | Misma batería bajo el prefijo `/lectura-bionica/` con `404.html` (simulación de GitHub Pages) | 40/40 |
@@ -83,3 +83,17 @@ Antes de la corrección de hoy, el PDF de 400 páginas llegaba a **677 MB** y 10
 ## Analítica
 
 Preparada y apagada: no se envía nada sin `VITE_ANALYTICS_ENDPOINT` y consentimiento. Eventos: `page_view`, `landing_view` (con `source`: solo dominio de origen o `utm_source`), `conversion_started` (selección de archivo), `format_imported`, `conversion_completed`, `download_completed`, `conversion_error` (solo el código), `returning_visit`. No hay proveedor integrado: para medir hace falta un endpoint propio o adaptar `src/lib/state/analytics.ts` a uno que se elija. Si se añade un endpoint, incluirlo en `connect-src` del CSP de `index.html`.
+
+## Versión en inglés (2026-10-16)
+
+`/en/` con 12 páginas: portada con el conversor, 7 guías y 4 textos legales. Marca «Readably».
+
+**Verificado en Chrome real (escritorio y móvil):** 40/40 en inglés y 40/40 en español (sin regresión), 0 violaciones de accesibilidad en 30 estados ingleses, 25 páginas estáticas con `hreflang` recíproco, `x-default` al español y datos estructurados en cada idioma, selector de idioma en 6 recorridos, 0 errores de consola.
+
+**Decisiones que conviene revisar:**
+- **Marca registrada.** «Bionic Reading» es una marca registrada; en el mercado anglosajón el riesgo es mayor que en el español. La web usa «bionic reading» como término descriptivo, evita presentarse como el producto oficial y lo avisa en el pie y en la guía principal. Si quieres reducir el riesgo, puede sustituirse por «bold-start reading» o similar, a costa de menos búsquedas.
+- **Revisión legal en inglés.** Los textos mencionan RGPD/UK GDPR y derechos «según donde vivas», sin afirmar cumplimiento. Conviene revisarlos con asesoría, sobre todo para público de EE. UU. y Reino Unido.
+- **Anuncios y consentimiento.** El banner es el mismo en ambos idiomas. Para AdSense, un CMP certificado (TCF) también cubre el Reino Unido y Suiza.
+- **Sin Premium en inglés**, a propósito.
+
+**No verificado:** el texto inglés no lo ha revisado una persona nativa. Está escrito para ser claro y neutro, pero conviene una lectura antes de promocionarlo.

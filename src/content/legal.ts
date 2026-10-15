@@ -1,11 +1,13 @@
-// Textos legales. Ningún texto de aquí constituye por sí solo cumplimiento
-// normativo: debe revisarse con asesoría. Los datos del titular están en
-// CONTROLLER; los campos que falten se marcan [COMPLETAR].
+// Textos legales por idioma. Ningún texto de aquí constituye por sí solo
+// cumplimiento normativo: deben revisarse con asesoría. Los datos del titular
+// están en CONTROLLER; los campos que falten se marcan [COMPLETAR].
 //
 // Los textos describen lo que la web hace de verdad: mientras Premium esté
 // desactivado (VITE_PREMIUM_ENABLED), no se mencionan cuentas, Supabase ni Stripe.
+// Premium solo existe en español, así que la versión inglesa nunca lo menciona.
 
 import { config } from '../lib/state/config';
+import type { Locale } from '../i18n/locale';
 
 export interface LegalSection {
   heading: string;
@@ -14,7 +16,8 @@ export interface LegalSection {
 }
 
 export interface LegalDocument {
-  path: string;
+  /** Identificador estable de la ruta (src/content/routes.json). */
+  id: 'privacy' | 'cookies' | 'terms' | 'legal';
   title: string;
   updated: string;
   sections: LegalSection[];
@@ -27,7 +30,6 @@ export const CONTROLLER = {
   email: 'jaimelillobenito@gmail.com',
 };
 
-const UPDATED = '15 de octubre de 2026';
 const PREMIUM = config.premiumEnabled;
 
 /** Incluye los elementos solo cuando la condición se cumple. */
@@ -35,11 +37,11 @@ function when<T>(condition: boolean, items: T[]): T[] {
   return condition ? items : [];
 }
 
-export const LEGAL_DOCS: LegalDocument[] = [
+const ES: LegalDocument[] = [
   {
-    path: '/privacidad',
+    id: 'privacy',
     title: 'Política de privacidad',
-    updated: UPDATED,
+    updated: '15 de octubre de 2026',
     sections: [
       {
         heading: '1. Responsable del tratamiento',
@@ -102,9 +104,9 @@ export const LEGAL_DOCS: LegalDocument[] = [
     ],
   },
   {
-    path: '/cookies',
+    id: 'cookies',
     title: 'Política de cookies',
-    updated: UPDATED,
+    updated: '15 de octubre de 2026',
     sections: [
       {
         heading: 'Qué almacenamos',
@@ -131,9 +133,9 @@ export const LEGAL_DOCS: LegalDocument[] = [
     ],
   },
   {
-    path: '/terminos',
+    id: 'terms',
     title: 'Condiciones de uso',
-    updated: UPDATED,
+    updated: '15 de octubre de 2026',
     sections: [
       {
         heading: '1. Servicio',
@@ -169,9 +171,9 @@ export const LEGAL_DOCS: LegalDocument[] = [
     ],
   },
   {
-    path: '/aviso-legal',
+    id: 'legal',
     title: 'Aviso legal',
-    updated: UPDATED,
+    updated: '15 de octubre de 2026',
     sections: [
       {
         heading: 'Titular del sitio',
@@ -192,3 +194,142 @@ export const LEGAL_DOCS: LegalDocument[] = [
     ],
   },
 ];
+
+const EN: LegalDocument[] = [
+  {
+    id: 'privacy',
+    title: 'Privacy policy',
+    updated: 'October 15, 2026',
+    sections: [
+      {
+        heading: '1. Data controller',
+        paragraphs: [`${CONTROLLER.name}, ${CONTROLLER.id}, ${CONTROLLER.address}, Spain. Contact: ${CONTROLLER.email}.`],
+      },
+      {
+        heading: '2. Your documents are not uploaded to our servers',
+        paragraphs: [
+          'The EPUB and PDF files you convert are read and transformed in your own browser. They are not sent to any server, they are not stored, and they are not included in analytics. When you close the tab, the document disappears from the app.',
+        ],
+      },
+      {
+        heading: '3. Data we do process',
+        paragraphs: ['We only process the data needed for each purpose:'],
+        list: [
+          'Reading settings: saved in your browser (localStorage) to remember your configuration. They do not leave your device.',
+          'Cookie preferences: saved in your browser so we do not ask again.',
+          'Analytics (only with your consent): anonymous events such as visits, start and end of conversions, file format and the source of the visit (only the referring domain). File contents, file names and extracted text are never sent.',
+          'Advertising (only with your consent): Google AdSense may process data through cookies and device identifiers. If you do not accept, it is not loaded.',
+        ],
+      },
+      {
+        heading: '4. Purposes and legal bases',
+        paragraphs: [
+          'To provide the conversion service (performance of the service and the settings you choose), and to measure usage and show advertising only with your consent (Article 6(1)(a) GDPR).',
+        ],
+      },
+      {
+        heading: '5. External services',
+        paragraphs: ['Services that may be involved depending on the feature you use:'],
+        list: [
+          'Google AdSense: advertising, only with consent. See Google’s policy.',
+          'Hosting: GitHub Pages (GitHub, Inc.) may record IP addresses and technical access data in its logs.',
+        ],
+      },
+      {
+        heading: '6. Retention',
+        paragraphs: ['Settings stay in your browser until you delete them. We do not keep your documents.'],
+      },
+      {
+        heading: '7. Your rights',
+        paragraphs: [
+          `You can access, rectify, erase, restrict or object to the processing of your data and request portability by writing to ${CONTROLLER.email}. You can also complain to the Spanish Data Protection Agency (aepd.es) or to your local data protection authority, such as the ICO in the United Kingdom.`,
+          'Depending on where you live (for example in the United Kingdom or in some US states), you may have additional rights under local law. Contact us and we will respond.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'cookies',
+    title: 'Cookie policy',
+    updated: 'October 15, 2026',
+    sections: [
+      {
+        heading: 'What we store',
+        paragraphs: ['The app uses your browser’s local storage (localStorage) for:'],
+        list: [
+          'lb:reading-settings:v1: your reading settings (necessary).',
+          'lb:consent:v1: your choice about optional cookies (necessary).',
+          'lb:visits: a local visit counter used to detect returning visits (only if you accept analytics).',
+        ],
+      },
+      {
+        heading: 'Third-party cookies',
+        paragraphs: [
+          'Google AdSense may set cookies to show ads. It only loads if you accept advertising. If you reject it, no ad script is loaded.',
+        ],
+      },
+      {
+        heading: 'How to change your choice',
+        paragraphs: [
+          'You can change your consent at any time with the “Cookie preferences” link in the footer. You can also clear the site’s data from your browser settings.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'terms',
+    title: 'Terms of use',
+    updated: 'October 15, 2026',
+    sections: [
+      {
+        heading: '1. Service',
+        paragraphs: [
+          'Readably converts EPUB and PDF documents containing text into a reading format with customizable bionic-style bolding. Conversion is free and requires no sign-up.',
+        ],
+      },
+      {
+        heading: '2. Acceptable use',
+        paragraphs: [
+          'You must have the right to use the documents you convert (for example, books you bought or works in the public domain). You may not use the service to circumvent technical protections on documents.',
+        ],
+      },
+      {
+        heading: '3. Limits of the result',
+        paragraphs: [
+          `There is a maximum size of ${config.maxFileMb} MB per file. PDF reconstruction is not an identical copy of the original and complex documents may not keep their layout. Protected or scanned documents cannot be transformed. The app tells you in those cases.`,
+          'Bionic-style reading is a reading personalization tool and has no medical or therapeutic purpose.',
+        ],
+      },
+      {
+        heading: '4. Availability and liability',
+        paragraphs: ['The service is provided as is and may change or be interrupted. We recommend always keeping the original document.'],
+      },
+    ],
+  },
+  {
+    id: 'legal',
+    title: 'Legal notice',
+    updated: 'October 15, 2026',
+    sections: [
+      {
+        heading: 'Site owner',
+        paragraphs: [`${CONTROLLER.name} · ${CONTROLLER.id} · ${CONTROLLER.address}, Spain · ${CONTROLLER.email}`],
+      },
+      {
+        heading: 'Conditions of access',
+        paragraphs: [
+          'Access to the site is free. Users agree to make lawful use of the service. The owner may modify or withdraw content and features without notice.',
+        ],
+      },
+      {
+        heading: 'Intellectual property',
+        paragraphs: [
+          'The design, code and texts of the site belong to the owner or are used under license. The documents you convert remain the property of their owner.',
+          'Bionic Reading® is a trademark of its owners. This site is not affiliated with them.',
+        ],
+      },
+    ],
+  },
+];
+
+export const LEGAL_DOCS: Record<Locale, LegalDocument[]> = { es: ES, en: EN };

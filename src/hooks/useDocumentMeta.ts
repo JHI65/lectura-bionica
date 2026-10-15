@@ -1,48 +1,73 @@
-// Título, descripción y canonical por ruta. El HTML estático generado en build
-// (scripts/seo-build.mjs) lleva los mismos valores para los rastreadores.
+// Título, descripción, canonical, hreflang e idioma por ruta. El HTML estático
+// generado en build (scripts/seo-build.mjs) lleva los mismos valores para los
+// rastreadores; este hook los mantiene al navegar dentro de la app.
 import { useEffect } from 'react';
-import routes from '../content/routes.json';
+import { useLocation } from 'react-router-dom';
+import { alternatesFor, findByPath } from '../content/routes';
+import { BRAND, DEFAULT_LOCALE, HTML_LANG, OG_LOCALE, localeFromPath } from '../i18n/locale';
 import { config } from '../lib/state/config';
 
-interface RouteMeta {
-  path: string;
-  title: string;
-  description: string;
+interface Overrides {
+  title?: string;
+  description?: string;
   noindex?: boolean;
 }
 
-/**
- * Las URLs publicadas terminan en barra (/privacidad/) porque cada ruta es una
- * carpeta. Las rutas internas no: se normaliza para que ambas coincidan.
- */
-export function normalizePath(path: string): string {
-  return path.length > 1 ? path.replace(/\/+$/, '') : path;
+/** URL pública final de una ruta: cada ruta es una carpeta, con barra final. */
+export function publicUrl(path: string): string {
+  return `${config.siteUrl}${path === '/' ? '/' : `${path.replace(/\/+$/, '')}/`}`;
 }
 
-export function metaFor(path: string): RouteMeta | undefined {
-  return (routes as RouteMeta[]).find((r) => r.path === normalizePath(path));
-}
+export function useDocumentMeta(overrides: Overrides = {}) {
+  const { pathname } = useLocation();
+  const locale = localeFromPath(pathname);
+  const match = findByPath(pathname);
+  const route = match?.entry[match.locale];
+  const brand = BRAND[locale];
 
-export function useDocumentMeta(rawPath: string, overrides: Partial<Pick<RouteMeta, 'title' | 'description'>> = {}) {
-  const path = normalizePath(rawPath);
+  const title = overrides.title ?? route?.title ?? brand;
+  const description = overrides.description ?? route?.description ?? '';
+  const noindex = overrides.noindex ?? match?.entry.noindex ?? false;
+  const id = match?.entry.id;
+
   useEffect(() => {
-    const meta = metaFor(path);
-    const title = overrides.title ?? meta?.title ?? 'Lectura biónica';
-    const description = overrides.description ?? meta?.description ?? '';
-    document.title = /lectura bi[oó]nica/i.test(title) ? title : `${title} · Lectura biónica`;
+    // La marca no se repite si el título ya la contiene.
+    const hasBrand = title.toLowerCase().includes(brand.toLowerCase()) || /lectura bi[oó]nica/i.test(title);
+    document.title = hasBrand ? title : `${title} · ${brand}`;
+    document.documentElement.lang = HTML_LANG[locale];
 
     setMeta('name', 'description', description);
     setMeta('property', 'og:title', title);
     setMeta('property', 'og:description', description);
     setMeta('property', 'og:type', 'website');
-    if (config.siteUrl) {
-      // Misma URL final que el sitemap: los hosts estáticos redirigen /ruta → /ruta/.
-      const url = `${config.siteUrl}${path === '/' ? '/' : `${path}/`}`;
-      setMeta('property', 'og:url', url);
-      setLink('canonical', url);
+    setMeta('property', 'og:locale', OG_LOCALE[locale]);
+    setMeta('property', 'og:site_name', brand);
+    setMeta('name', 'robots', noindex ? 'noindex, nofollow' : 'index, follow');
+
+    if (config.siteUrl && route) {
+      setMeta('property', 'og:url', publicUrl(route.path));
+      setLink('canonical', publicUrl(route.path));
     }
-    setMeta('name', 'robots', meta?.noindex ? 'noindex, nofollow' : 'index, follow');
-  }, [path, overrides.title, overrides.description]);
+
+    // hreflang: cada versión enlaza a las demás y a sí misma; x-default → español.
+    document.head.querySelectorAll('link[rel="alternate"][hreflang]').forEach((el) => el.remove());
+    if (config.siteUrl && id) {
+      const alternates = alternatesFor(id);
+      if (alternates.length > 1) {
+        for (const alt of alternates) addAlternate(alt.locale, publicUrl(alt.path));
+        const fallback = alternates.find((a) => a.locale === DEFAULT_LOCALE) ?? alternates[0];
+        addAlternate('x-default', publicUrl(fallback.path));
+      }
+    }
+  }, [title, description, noindex, locale, brand, route, id]);
+}
+
+function addAlternate(hreflang: string, href: string) {
+  const el = document.createElement('link');
+  el.rel = 'alternate';
+  el.hreflang = hreflang;
+  el.href = href;
+  document.head.appendChild(el);
 }
 
 function setMeta(attr: 'name' | 'property', key: string, content: string) {

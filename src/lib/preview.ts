@@ -16,9 +16,9 @@ export function previewCss(settings: ReadingSettings): string {
 }
 
 /** Documento inicial del iframe. Los cambios posteriores se aplican sin recargarlo. */
-export function buildPreviewDocument(body: string, css: string): string {
+export function buildPreviewDocument(body: string, css: string, lang = 'es'): string {
   return `<!doctype html>
-<html lang="es">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -2,12 +2,12 @@
 import {
   BOLD_RATIO_MAX,
   BOLD_RATIO_MIN,
-  INTENSITY_LABEL,
   type FontFamily,
   type Intensity,
   type ReadingSettings,
   type ReadingTheme,
 } from '../lib/bionic/settings';
+import { useI18n } from '../i18n/useI18n';
 import { btnSecondary } from './ui';
 
 interface Props {
@@ -97,18 +97,21 @@ function Slider({
 }
 
 export function SettingsPanel({ settings, onChange, onReset }: Props) {
+  const { t, numberLocale } = useI18n();
+  const s = t.settings;
+  const pct = (v: number) => `${new Intl.NumberFormat(numberLocale).format(Math.round(v * 100))} %`;
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold text-ink">Negrita bionica</h3>
-          <p className="text-sm text-ink-soft">Resalta el inicio de cada palabra</p>
+          <h3 className="text-base font-semibold text-ink">{s.bionicTitle}</h3>
+          <p className="text-sm text-ink-soft">{s.bionicHint}</p>
         </div>
         <button
           type="button"
           role="switch"
           aria-checked={settings.bionicEnabled}
-          aria-label="Activar negrita bionica"
+          aria-label={s.bionicAria}
           onClick={() => onChange('bionicEnabled', !settings.bionicEnabled)}
           className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
             settings.bionicEnabled ? 'bg-brand' : 'bg-slate-300'
@@ -119,28 +122,28 @@ export function SettingsPanel({ settings, onChange, onReset }: Props) {
       </div>
 
       <Segmented<Intensity>
-        legend="Intensidad"
+        legend={s.intensity}
         value={settings.intensity}
-        options={(Object.keys(INTENSITY_LABEL) as Intensity[]).map((v) => ({ value: v, label: INTENSITY_LABEL[v] }))}
+        options={(['suave', 'media', 'alta'] as Intensity[]).map((v) => ({ value: v, label: s.intensityOptions[v] }))}
         onChange={(v) => onChange('intensity', v)}
       />
 
       <Slider
         id="bold-ratio"
-        label="Letras en negrita"
+        label={s.boldRatio}
         value={settings.boldRatio}
         min={BOLD_RATIO_MIN}
         max={BOLD_RATIO_MAX}
         step={0.05}
-        format={(v) => `${Math.round(v * 100)} %`}
+        format={pct}
         onChange={(v) => onChange('boldRatio', Math.round(v * 100) / 100)}
       />
       <p className="-mt-3 text-xs leading-relaxed text-ink-soft">
-        Porcentaje de cada palabra en negrita. Las palabras de 1 a 3 letras resaltan solo la primera.
+        {s.boldRatioNote}
       </p>
 
       <Segmented<FontFamily>
-        legend="Tipo de letra"
+        legend={s.fontFamily}
         value={settings.fontFamily}
         options={[
           { value: 'sans', label: 'Sans' },
@@ -150,34 +153,34 @@ export function SettingsPanel({ settings, onChange, onReset }: Props) {
         onChange={(v) => onChange('fontFamily', v)}
       />
 
-      <Slider id="font-size" label="Tamaño de letra" value={settings.fontSize} min={14} max={28} step={1} format={(v) => `${v} px`} onChange={(v) => onChange('fontSize', v)} />
-      <Slider id="line-height" label="Interlineado" value={settings.lineHeight} min={1.3} max={2.2} step={0.1} format={(v) => v.toFixed(1)} onChange={(v) => onChange('lineHeight', v)} />
-      <Slider id="letter-spacing" label="Espaciado entre letras" value={settings.letterSpacing} min={0} max={0.12} step={0.01} format={(v) => `${v.toFixed(2)} em`} onChange={(v) => onChange('letterSpacing', v)} />
+      <Slider id="font-size" label={s.fontSize} value={settings.fontSize} min={14} max={28} step={1} format={(v) => `${v} px`} onChange={(v) => onChange('fontSize', v)} />
+      <Slider id="line-height" label={s.lineHeight} value={settings.lineHeight} min={1.3} max={2.2} step={0.1} format={(v) => v.toFixed(1)} onChange={(v) => onChange('lineHeight', v)} />
+      <Slider id="letter-spacing" label={s.letterSpacing} value={settings.letterSpacing} min={0} max={0.12} step={0.01} format={(v) => `${v.toFixed(2)} em`} onChange={(v) => onChange('letterSpacing', v)} />
 
       <Segmented<ReadingSettings['readingWidth']>
-        legend="Ancho de lectura"
+        legend={s.width}
         value={settings.readingWidth}
         options={[
-          { value: 'estrecho', label: 'Estrecho' },
-          { value: 'medio', label: 'Medio' },
-          { value: 'ancho', label: 'Ancho' },
+          { value: 'estrecho', label: s.widthOptions.estrecho },
+          { value: 'medio', label: s.widthOptions.medio },
+          { value: 'ancho', label: s.widthOptions.ancho },
         ]}
         onChange={(v) => onChange('readingWidth', v)}
       />
 
       <Segmented<ReadingTheme>
-        legend="Tema y contraste"
+        legend={s.theme}
         value={settings.theme}
         options={[
-          { value: 'claro', label: 'Claro' },
-          { value: 'sepia', label: 'Sepia' },
-          { value: 'oscuro', label: 'Oscuro' },
+          { value: 'claro', label: s.themeOptions.claro },
+          { value: 'sepia', label: s.themeOptions.sepia },
+          { value: 'oscuro', label: s.themeOptions.oscuro },
         ]}
         onChange={(v) => onChange('theme', v)}
       />
 
       <button type="button" className={`${btnSecondary} w-full`} onClick={onReset}>
-        Restablecer ajustes
+        {s.reset}
       </button>
     </div>
   );

@@ -9,6 +9,8 @@ import { INTENSITY_REST_OPACITY, type FontFamily, type ReadingSettings } from '.
 import type { PdfBlock, PdfDocument } from '../document';
 import { safeBaseName } from '../files/validate';
 import { createYielder, throwIfAborted, type TaskOptions } from '../async';
+import { BRAND, FILE_SUFFIX } from '../../i18n/locale';
+import type { AppWarning } from '../warnings';
 import { toPdfLiteral, toWinAnsi } from './winansi';
 
 const PAGE_WIDTH = 595.28; // A4
@@ -26,7 +28,7 @@ const FONTS: Record<FontFamily, { regular: StandardFonts; bold: StandardFonts }>
 export interface PdfExportResult {
   blob: Blob;
   fileName: string;
-  warnings: string[];
+  warnings: AppWarning[];
 }
 
 interface Token {
@@ -79,7 +81,7 @@ interface Layout {
 }
 
 export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, options: TaskOptions = {}): Promise<PdfExportResult> {
-  const { signal, onProgress } = options;
+  const { signal, onProgress, locale = 'es' } = options;
   const yieldToUi = createYielder();
   const blocks: PdfBlock[] = doc.sections.flatMap((s) => s.blocks);
   if (blocks.length === 0) throw new ConversionError('EXPORT_FAILED', 'no hay texto que exportar');
@@ -101,7 +103,7 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, opt
   const maxWidth = PAGE_WIDTH - MARGIN * 2;
 
   let replacedTotal = 0;
-  const footer = `${toWinAnsi(doc.title).text.slice(0, 80)} · Lectura biónica`;
+  const footer = `${toWinAnsi(doc.title).text.slice(0, 80)} · ${BRAND[locale]}`;
   const layout: Layout = {
     pdf,
     writer: new PageWriter(pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]), fontSet),
@@ -124,7 +126,7 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, opt
 
   for (const [blockIndex, block] of blocks.entries()) {
     throwIfAborted(signal);
-    if (blockIndex % 25 === 0) onProgress?.({ stage: 'Generando PDF', done: blockIndex, total: blocks.length });
+    if (blockIndex % 25 === 0) onProgress?.({ stage: 'pdf-build', done: blockIndex, total: blocks.length });
     await yieldToUi();
     const cleaned = toWinAnsi(block.text.replace(/\s+/g, ' ').trim());
     replacedTotal += cleaned.replaced;
@@ -167,20 +169,18 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, opt
   layout.writer.close(pdf);
 
   pdf.setTitle(doc.title);
-  pdf.setCreator('Lectura biónica');
-  pdf.setProducer('Lectura biónica');
+  pdf.setCreator(BRAND[locale]);
+  pdf.setProducer(BRAND[locale]);
 
   const bytes = await pdf.save();
   await verifyPdf(bytes, pageCount);
 
-  const warnings: string[] = [];
-  if (replacedTotal > 0) {
-    warnings.push(`${replacedTotal} carácter(es) sin equivalente en la fuente estándar se han sustituido por «?».`);
-  }
+  const warnings: AppWarning[] = [];
+  if (replacedTotal > 0) warnings.push({ code: 'PDF_CHARS_REPLACED', params: { count: replacedTotal } });
 
   return {
     blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }),
-    fileName: `${safeBaseName(doc.fileName)}-lectura-bionica.pdf`,
+    fileName: `${safeBaseName(doc.fileName)}-${FILE_SUFFIX[locale]}.pdf`,
     warnings,
   };
 }

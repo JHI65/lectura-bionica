@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /cuenta
+
+# Sitemap generado en build (scripts/seo-build.mjs) con VITE_SITE_URL

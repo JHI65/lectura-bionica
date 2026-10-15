@@ -1,0 +1,68 @@
+[
+  {
+    "path": "/",
+    "title": "Lectura biónica para EPUB y PDF: convierte tu libro gratis",
+    "description": "Convierte tus EPUB y PDF con texto a lectura biónica personalizable. Se procesan en tu navegador, sin registro, y puedes descargar el resultado."
+  },
+  {
+    "path": "/convertir",
+    "title": "Convertir documento a lectura biónica",
+    "description": "Sube un EPUB o PDF con texto seleccionable, ajusta la tipografía y descarga el documento transformado. Tu archivo no sale de tu dispositivo."
+  },
+  {
+    "path": "/convertir-epub-a-lectura-bionica",
+    "title": "Convertir EPUB a lectura biónica",
+    "description": "Transforma un EPUB a lectura biónica conservando capítulos, títulos, listas, enlaces e imágenes. Descarga un EPUB listo para tu lector."
+  },
+  {
+    "path": "/convertir-pdf-a-lectura-bionica",
+    "title": "Convertir PDF a lectura biónica",
+    "description": "Reformatea un PDF con texto seleccionable en lectura biónica. Se avisa si el PDF es un escaneo que necesita OCR y se explican los límites del resultado."
+  },
+  {
+    "path": "/que-es-la-lectura-bionica",
+    "title": "¿Qué es la lectura biónica? Guía clara",
+    "description": "Qué es la lectura biónica, cómo funciona el resaltado inicial de palabras y qué puede y qué no puede prometer como herramienta de personalización."
+  },
+  {
+    "path": "/personalizar-tipografia-para-leer",
+    "title": "Personalizar la tipografía para leer mejor",
+    "description": "Cómo ajustar tamaño, tipo de letra, interlineado, espaciado y ancho de línea para que la lectura te resulte más cómoda."
+  },
+  {
+    "path": "/herramientas-accesibilidad-lectora",
+    "title": "Herramientas de accesibilidad lectora",
+    "description": "Opciones para adaptar la lectura de libros y documentos: formatos, tipografía, contraste y lectura biónica, con sus límites."
+  },
+  {
+    "path": "/premium",
+    "title": "Premium sin anuncios",
+    "description": "Suscripción Premium para usar la aplicación sin anuncios. Todas las funciones gratuitas siguen disponibles."
+  },
+  {
+    "path": "/cuenta",
+    "title": "Tu cuenta",
+    "description": "Gestiona tu acceso, tu suscripción Premium y tu facturación.",
+    "noindex": true
+  },
+  {
+    "path": "/privacidad",
+    "title": "Política de privacidad",
+    "description": "Qué datos trata Lectura biónica, con qué finalidad, qué servicios externos intervienen y cómo ejercer tus derechos."
+  },
+  {
+    "path": "/cookies",
+    "title": "Política de cookies",
+    "description": "Cookies y almacenamiento local que utiliza la aplicación y cómo gestionar tu consentimiento."
+  },
+  {
+    "path": "/terminos",
+    "title": "Condiciones de uso",
+    "description": "Condiciones de uso del servicio de conversión y de la suscripción Premium."
+  },
+  {
+    "path": "/aviso-legal",
+    "title": "Aviso legal",
+    "description": "Identificación del titular del sitio y condiciones generales de acceso."
+  }
+]

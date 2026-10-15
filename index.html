@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!--
+      Política de seguridad de contenido. Permite solo lo que usa la app:
+      scripts propios, AdSense (solo si está configurado), Supabase y el iframe de vista previa.
+      frame-ancestors no puede declararse en meta: configúrelo en el servidor si lo aloja.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://pagead2.googlesyndication.com; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com"
+    />
+    <meta name="description" content="Convierte tus EPUB y PDF con texto a lectura biónica personalizable. Se procesan en tu navegador, sin registro." />
+    <meta name="theme-color" content="#2f5bd3" />
+    <meta property="og:site_name" content="Lectura biónica" />
+    <meta property="og:locale" content="es_ES" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Lectura biónica para EPUB y PDF</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

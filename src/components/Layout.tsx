@@ -107,6 +107,8 @@ export function Layout() {
             <Link className="min-h-[44px] content-center text-ink-soft hover:text-brand" to="/convertir-pdf-a-lectura-bionica">Convertir PDF</Link>
             <Link className="min-h-[44px] content-center text-ink-soft hover:text-brand" to="/personalizar-tipografia-para-leer">Personalizar la tipografía</Link>
             <Link className="min-h-[44px] content-center text-ink-soft hover:text-brand" to="/herramientas-accesibilidad-lectora">Herramientas de accesibilidad</Link>
+            <Link className="min-h-[44px] content-center text-ink-soft hover:text-brand" to="/pdf-escaneado-ocr">PDF escaneado y OCR</Link>
+            <Link className="min-h-[44px] content-center text-ink-soft hover:text-brand" to="/solucion-de-problemas-conversion">Solución de problemas</Link>
           </nav>
         </div>
         <p className="mx-auto max-w-6xl px-4 pb-8 text-xs text-ink-soft">

@@ -59,3 +59,37 @@ describe('guías y páginas legales', () => {
     expect(render(GuidePage, '/ruta-que-no-existe/')).toContain('Página no encontrada');
   });
 });
+
+describe('calidad del contenido de las guías', () => {
+  const wordCount = (html: string) =>
+    html
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&[a-z#0-9]+;/g, ' ')
+      .split(/\s+/)
+      .filter((w) => /\p{L}/u.test(w)).length;
+
+  for (const page of SEO_PAGES) {
+    it(`${page.path} tiene contenido sustancial (≥ 450 palabras)`, () => {
+      expect(wordCount(render(GuidePage, `${page.path}/`))).toBeGreaterThanOrEqual(450);
+    });
+
+    it(`${page.path} no repite encabezados ni usa afirmaciones clínicas`, () => {
+      const headings = page.sections.map((s) => s.heading);
+      expect(new Set(headings).size).toBe(headings.length);
+      const text = JSON.stringify(page);
+      expect(text).not.toMatch(/\b(cura|curar|trata(?:miento)? (?:el|del) TDAH|mejora (?:garantizada|demostrada))\b/i);
+    });
+
+    it(`${page.path} tiene su propio título y descripción`, () => {
+      const meta = metaFor(page.path);
+      expect(meta?.title).toBeTruthy();
+      expect(meta?.description.length).toBeGreaterThan(50);
+    });
+  }
+
+  it('no hay dos guías con la misma descripción ni el mismo título', () => {
+    const metas = SEO_PAGES.map((p) => metaFor(p.path)!);
+    expect(new Set(metas.map((m) => m.title)).size).toBe(metas.length);
+    expect(new Set(metas.map((m) => m.description)).size).toBe(metas.length);
+  });
+});

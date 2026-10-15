@@ -6,7 +6,7 @@ Estado a 2026-10-15. Premium, cuentas y pagos están **desactivados** (`VITE_PRE
 
 ```bash
 cd ~/Dev/lectura-bionica
-npm test && npm run build         # 123 pruebas + tipos + build
+npm test && npm run build         # 151 pruebas + tipos + build
 git add -A && git commit -m "..."
 git push origin main
 npm run deploy:pages              # compila con la base de Pages y sube a gh-pages
@@ -34,7 +34,7 @@ Antes de la corrección de hoy, el PDF de 400 páginas llegaba a **677 MB** y 10
 
 | Prueba | Resultado |
 |---|---|
-| `npm test` (vitest, jsdom) | 123/123 |
+| `npm test` (vitest, jsdom) | 151/151 |
 | `tsc --noEmit` | sin errores |
 | Chrome real, escritorio y móvil (390×844): flujo EPUB y PDF, errores, cancelar, descarga | 40/40 |
 | Misma batería bajo el prefijo `/lectura-bionica/` con `404.html` (simulación de GitHub Pages) | 40/40 |

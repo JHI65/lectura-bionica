@@ -35,6 +35,16 @@
     "description": "Opciones para adaptar la lectura de libros y documentos: formatos, tipografía, contraste y lectura biónica, con sus límites."
   },
   {
+    "path": "/pdf-escaneado-ocr",
+    "title": "PDF escaneado: cómo reconocerlo y qué hacer",
+    "description": "Cómo saber si tu PDF es un escaneo sin texto seleccionable, qué es el OCR y qué opciones tienes para convertirlo en un documento con texto."
+  },
+  {
+    "path": "/solucion-de-problemas-conversion",
+    "title": "Por qué no se convierte mi EPUB o PDF: soluciones",
+    "description": "Qué significa cada mensaje de error al convertir un EPUB o PDF a lectura biónica (DRM, escaneados, tamaño, archivos dañados) y cómo resolverlo."
+  },
+  {
     "path": "/premium",
     "title": "Premium sin anuncios",
     "description": "Suscripción Premium para usar la aplicación sin anuncios. Todas las funciones gratuitas siguen disponibles.",

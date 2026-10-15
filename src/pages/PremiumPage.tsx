@@ -5,7 +5,7 @@ import { btnPrimary, btnSecondary, card, linkBtn, sectionTitle } from '../compon
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { usePremium } from '../hooks/usePremium';
 import { getSupabase } from '../lib/auth/supabase';
-import { config, isSupabaseConfigured } from '../lib/state/config';
+import { appUrl, config, isSupabaseConfigured } from '../lib/state/config';
 import { track } from '../lib/state/analytics';
 
 const INCLUDED = [
@@ -26,7 +26,7 @@ export function PremiumPage() {
     setBusy(true);
     setError(null);
     try {
-      const returnUrl = `${config.siteUrl || window.location.origin}/cuenta?checkout=success`;
+      const returnUrl = appUrl('/cuenta?checkout=success');
       const { data, error: invokeError } = await supabase.functions.invoke<{ url?: string }>('create-checkout-session', {
         body: { returnUrl },
       });

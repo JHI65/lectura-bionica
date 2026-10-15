@@ -5,7 +5,7 @@ import { btnPrimary, btnSecondary, card, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { refreshPremium, usePremium } from '../hooks/usePremium';
 import { getSupabase } from '../lib/auth/supabase';
-import { config } from '../lib/state/config';
+import { appUrl, config } from '../lib/state/config';
 
 const STATUS_TEXT: Record<string, string> = {
   active: 'Activa',
@@ -42,7 +42,7 @@ export function AccountPage() {
     setError(null);
     const { error: authError } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${config.siteUrl || window.location.origin}/cuenta` },
+      options: { emailRedirectTo: appUrl('/cuenta') },
     });
     setBusy(false);
     if (authError) setError('No se ha podido enviar el enlace. Revisa el correo e inténtalo de nuevo.');
@@ -55,7 +55,7 @@ export function AccountPage() {
     setBusy(true);
     setError(null);
     try {
-      const returnUrl = `${config.siteUrl || window.location.origin}/cuenta`;
+      const returnUrl = appUrl('/cuenta');
       const { data, error: invokeError } = await supabase.functions.invoke<{ url?: string }>(path, { body: { returnUrl } });
       if (invokeError || !data?.url) throw invokeError ?? new Error('Sin URL');
       window.location.assign(data.url);

@@ -73,4 +73,11 @@ if (siteUrl) {
   }
 }
 
+// GitHub Pages (y hosts similares) sirven 404.html para rutas desconocidas:
+// la app arranca y muestra su propia página «no encontrada».
+writeFileSync(
+  join(dist, '404.html'),
+  template.replace('</head>', '    <meta name="robots" content="noindex" />\n  </head>'),
+);
+
 console.log(`[seo] ${routes.length} rutas generadas${siteUrl ? ` · sitemap para ${siteUrl}` : ''}.`);

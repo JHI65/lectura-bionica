@@ -25,6 +25,12 @@ function normalizeAdsense(value: string | undefined): string {
   return ADSENSE_CLIENT_PATTERN.test(trimmed) ? trimmed : '';
 }
 
+/** URL absoluta de una ruta de la app, respetando el subdirectorio (BASE_URL). */
+export function appUrl(path: string): string {
+  const origin = config.siteUrl || `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/+$/, '')}`;
+  return `${origin}${path}`;
+}
+
 export const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabaseAnonKey);
 /** AdSense solo está configurado con cliente Y bloque válidos. */
 export const isAdsenseConfigured = Boolean(config.adsenseClient && config.adsenseSlot);

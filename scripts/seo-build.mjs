@@ -102,7 +102,7 @@ function pageHtml(route, locale) {
     `<meta property="og:site_name" content="${escape(brand)}" />`,
     `<meta property="og:locale" content="${OG_LOCALE[locale]}" />`,
     canonical ? `<meta property="og:url" content="${escape(canonical)}" />` : '',
-    siteUrl ? `<meta property="og:image" content="${escape(`${siteUrl}/icon-512.png`)}" />` : '',
+    siteUrl ? `<meta property="og:image" content="${escape(`${siteUrl}/og-image.png`)}" />` : '',
     canonical ? `<link rel="canonical" href="${escape(canonical)}" />` : '',
     // hreflang: cada versión enlaza a las demás y a sí misma; x-default → español.
     ...(siteUrl && alternates.length > 1

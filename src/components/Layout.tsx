@@ -31,9 +31,8 @@ export function Layout() {
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
           <Link to="/" className="flex min-h-[44px] items-center gap-2 rounded-lg font-semibold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand font-bold text-white" aria-hidden="true">
-              L
-            </span>
+            {/* Decorativo: el nombre al lado ya lo describe. */}
+            <img src={`${import.meta.env.BASE_URL}logo.png`} width={36} height={36} alt="" className="h-9 w-9" />
             Lectura biónica
           </Link>
           <nav aria-label="Principal" className="-mx-1 flex w-full gap-1 overflow-x-auto sm:w-auto">

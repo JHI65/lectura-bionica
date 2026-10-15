@@ -35,6 +35,7 @@ function pageHtml(route) {
     `<meta property="og:description" content="${escape(description)}" />`,
     `<meta property="og:type" content="website" />`,
     canonical ? `<meta property="og:url" content="${escape(canonical)}" />` : '',
+    siteUrl ? `<meta property="og:image" content="${escape(`${siteUrl}/icon-512.png`)}" />` : '',
     canonical ? `<link rel="canonical" href="${escape(canonical)}" />` : '',
   ]
     .filter(Boolean)

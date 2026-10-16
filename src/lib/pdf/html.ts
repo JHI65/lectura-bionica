@@ -14,6 +14,7 @@ export function escapeHtml(text: string): string {
 export function blocksToHtml(blocks: PdfBlock[]): string {
   return blocks
     .map((block) => {
+      if (block.kind === 'image') return `<figure><img src="${escapeHtml(block.src ?? '')}" alt=""></figure>`;
       const text = escapeHtml(block.text);
       if (block.kind === 'heading') return `<h2>${text}</h2>`;
       if (block.kind === 'listItem') return `<p class="list-item">${text}</p>`;

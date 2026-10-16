@@ -58,11 +58,11 @@
     "id": "faq-6",
     "es": {
       "q": "¿El PDF descargado es idéntico al original?",
-      "a": "No. Es un documento reformateado a partir del texto extraído, con títulos, párrafos y listas. Columnas, tablas, imágenes, notas al pie y fórmulas pueden no conservarse."
+      "a": "No. Es un documento reformateado a partir del texto extraído, con títulos, párrafos y listas. Se incluyen las imágenes incrustadas, pero columnas, tablas, gráficos vectoriales, notas al pie y fórmulas pueden no conservarse."
     },
     "en": {
       "q": "Is the downloaded PDF identical to the original?",
-      "a": "No. It is a document reformatted from the extracted text, with headings, paragraphs and lists. Columns, tables, images, footnotes and formulas may not be preserved."
+      "a": "No. It is a document reformatted from the extracted text, with headings, paragraphs and lists. Embedded images are included, but columns, tables, vector graphics, footnotes and formulas may not be preserved."
     }
   },
   {

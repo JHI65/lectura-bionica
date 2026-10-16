@@ -5,7 +5,7 @@
 import JSZip from 'jszip';
 import { ConversionError } from '../files/errors';
 import { applyBionicToTree, removeBionicMarkup } from '../html/transform';
-import { sanitizeTree } from '../html/sanitize';
+import { stripActiveContent } from '../html/clean';
 import { readerCss } from '../bionic/css';
 import type { ReadingSettings } from '../bionic/settings';
 import type { EpubDocument } from '../document';
@@ -108,7 +108,8 @@ export async function exportEpub(doc: EpubDocument, settings: ReadingSettings, o
 
     removeActiveContent(xhtml);
     removeBionicMarkup(body);
-    sanitizeTree(body);
+    // Solo se quita lo que ejecuta código: SVG, MathML, estilos y srcset se conservan.
+    stripActiveContent(body);
     // Comprobación de integridad: el texto debe quedar idéntico tras transformar.
     const textBefore = body.textContent ?? '';
     if (settings.bionicEnabled) applyBionicToTree(body, settings.boldRatio);

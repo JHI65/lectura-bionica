@@ -77,11 +77,21 @@ function stripPageNumbers(lines: TextLine[]): TextLine[] {
   return lines.filter((line) => !((line === first || line === last) && isNumber(line)));
 }
 
-/** Agrupa líneas en bloques: títulos, párrafos y elementos de lista. */
-export function buildBlocks(lines: TextLine[]): PdfBlock[] {
+/** Una imagen de la página con su posición vertical (coordenadas del PDF: y crece hacia arriba). */
+export interface PageImage {
+  top: number;
+  bottom: number;
+  block: PdfBlock;
+}
+
+/**
+ * Agrupa líneas en bloques: títulos, párrafos y elementos de lista. Las imágenes se
+ * intercalan según su posición vertical, cortando el párrafo en curso.
+ */
+export function buildBlocks(lines: TextLine[], images: PageImage[] = []): PdfBlock[] {
   const usable = stripPageNumbers(lines.filter((l) => l.text.length > 0));
-  if (usable.length === 0) return [];
-  const bodySize = median(usable.map((l) => l.height));
+  if (usable.length === 0 && images.length === 0) return [];
+  const bodySize = usable.length > 0 ? median(usable.map((l) => l.height)) : 10;
   const blocks: PdfBlock[] = [];
 
   let current: PdfBlock | null = null;
@@ -92,7 +102,20 @@ export function buildBlocks(lines: TextLine[]): PdfBlock[] {
     current = null;
   };
 
+  // De arriba abajo, por el centro de cada imagen.
+  const pending = images.slice().sort((a, b) => b.top + b.bottom - (a.top + a.bottom));
+  const emitImagesAbove = (y: number) => {
+    while (pending.length > 0 && (pending[0].top + pending[0].bottom) / 2 >= y) {
+      const image = pending.shift()!;
+      flush();
+      blocks.push(image.block);
+      // El párrafo siguiente se mide desde el borde inferior de la imagen.
+      previous = { y: image.bottom, height: bodySize, text: '', x: 0 };
+    }
+  };
+
   for (const line of usable) {
+    emitImagesAbove(line.y);
     const gap = previous ? previous.y - line.y : 0;
     const isHeading = line.height >= bodySize * 1.25 && line.text.length <= 120;
     const isListItem = LIST_MARKER.test(line.text);
@@ -111,6 +134,7 @@ export function buildBlocks(lines: TextLine[]): PdfBlock[] {
     }
     previous = line;
   }
+  emitImagesAbove(-Infinity);
   flush();
   return blocks;
 }

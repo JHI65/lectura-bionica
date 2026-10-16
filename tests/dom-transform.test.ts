@@ -145,3 +145,30 @@ describe('cantidad de letras en negrita', () => {
     }
   });
 });
+
+describe('sanitizeTree: atributos de <img> posteriores a src', () => {
+  it('elimina manejadores de eventos aunque vengan después de src', () => {
+    const root = body('<img src="../img/a.png" onerror="alert(1)" onload="alert(2)" alt="x" style="width:1px" srcset="a.png 1x">');
+    sanitizeTree(root);
+    const img = root.querySelector('img')!;
+    expect(img.getAttribute('src')).toBe('../img/a.png');
+    expect(img.getAttribute('alt')).toBe('x');
+    expect(img.hasAttribute('onerror')).toBe(false);
+    expect(img.hasAttribute('onload')).toBe(false);
+    expect(img.hasAttribute('style')).toBe(false);
+    expect(img.hasAttribute('srcset')).toBe(false);
+  });
+
+  it('elimina la imagen entera si su src no es seguro, sin dejar atributos', () => {
+    const root = body('<p>t</p><img src="javascript:alert(1)" onerror="alert(1)"><img src="https://tracker.example/p.gif" alt="d">');
+    sanitizeTree(root);
+    expect(root.querySelectorAll('img').length).toBe(0);
+    expect(root.innerHTML).not.toMatch(/onerror|javascript/);
+  });
+
+  it('procesa todos los atributos aunque src sea el último', () => {
+    const root = body('<img alt="x" onerror="alert(1)" src="a.png">');
+    sanitizeTree(root);
+    expect(root.querySelector('img')!.hasAttribute('onerror')).toBe(false);
+  });
+});

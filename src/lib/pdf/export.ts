@@ -2,7 +2,7 @@
 // (fragmento en negrita + resto en normal) y paginación propia.
 // Siempre sale en fondo blanco para imprimir; no es una copia del PDF original.
 
-import { PDFDocument, PDFName, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib';
+import { PDFDocument, PDFName, StandardFonts, type PDFFont, type PDFPage, type PDFRef } from 'pdf-lib';
 import { ConversionError } from '../files/errors';
 import { splitWord } from '../bionic/algorithm';
 import { INTENSITY_REST_OPACITY, type FontFamily, type ReadingSettings } from '../bionic/settings';
@@ -65,6 +65,12 @@ class PageWriter {
     this.ops.push(`BT ${this.keys[slot]} ${size.toFixed(2)} Tf ${r} ${g} ${b} rg ${x.toFixed(2)} ${y.toFixed(2)} Td ${toPdfLiteral(text)} Tj ET`);
   }
 
+  /** Dibuja una imagen ya incrustada en el documento. */
+  image(ref: PDFRef, x: number, y: number, width: number, height: number): void {
+    const key = String(this.page.node.newXObject('Img', ref));
+    this.ops.push(`q ${width.toFixed(2)} 0 0 ${height.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm ${key} Do Q`);
+  }
+
   close(pdf: PDFDocument): void {
     const stream = pdf.context.flateStream(this.ops.join('\n'));
     this.page.node.set(PDFName.of('Contents'), pdf.context.register(stream));
@@ -124,10 +130,32 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, opt
     }
   };
 
+  let imagesFailed = 0;
   for (const [blockIndex, block] of blocks.entries()) {
     throwIfAborted(signal);
     if (blockIndex % 25 === 0) onProgress?.({ stage: 'pdf-build', done: blockIndex, total: blocks.length });
     await yieldToUi();
+
+    if (block.kind === 'image') {
+      const embedded = block.src ? await embedDataUrl(pdf, block.src).catch(() => null) : null;
+      if (!embedded) {
+        imagesFailed++;
+        continue;
+      }
+      // Ancho completo como máximo, proporción conservada y nunca más alta que una página.
+      const ratio = embedded.width / embedded.height;
+      const maxHeight = PAGE_HEIGHT - MARGIN * 2 - 20;
+      let w = Math.min(maxWidth, block.widthPt ?? embedded.width);
+      let h = w / ratio;
+      if (h > maxHeight) {
+        h = maxHeight;
+        w = h * ratio;
+      }
+      ensureSpace(h);
+      layout.writer.image(embedded.ref, MARGIN + (maxWidth - w) / 2, layout.y - h, w, h);
+      layout.y -= h + lineHeight * 0.8;
+      continue;
+    }
     const cleaned = toWinAnsi(block.text.replace(/\s+/g, ' ').trim());
     replacedTotal += cleaned.replaced;
     if (!cleaned.text) continue;
@@ -177,6 +205,7 @@ export async function exportPdf(doc: PdfDocument, settings: ReadingSettings, opt
 
   const warnings: AppWarning[] = [];
   if (replacedTotal > 0) warnings.push({ code: 'PDF_CHARS_REPLACED', params: { count: replacedTotal } });
+  if (imagesFailed > 0) warnings.push({ code: 'PDF_IMAGES_SKIPPED', params: { count: imagesFailed } });
 
   return {
     blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }),
@@ -268,6 +297,14 @@ function drawLine(
 function drawFooter(layout: Layout): void {
   const text = `${layout.footer} · ${layout.pageNumber}`;
   layout.writer.text('footer', FOOTER_SIZE, MARGIN, MARGIN / 2, [0.42, 0.45, 0.5], text);
+}
+
+/** Incrusta en el PDF una imagen guardada como data URL (PNG o JPEG). */
+async function embedDataUrl(pdf: PDFDocument, dataUrl: string) {
+  const match = /^data:image\/(png|jpeg);base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
+  return match[1] === 'png' ? pdf.embedPng(bytes) : pdf.embedJpg(bytes);
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -116,6 +116,7 @@ const es = {
     progress: 'Progreso',
     stage: {
       'pdf-page': 'Leyendo página',
+      'pdf-images': 'Buscando imágenes en la página',
       'epub-chapter': 'Leyendo capítulo',
       'epub-transform': 'Transformando capítulo',
       'pdf-build': 'Generando PDF',
@@ -181,7 +182,7 @@ const es = {
       'Tu documento se procesa en tu navegador: no se sube a ningún servidor.',
     ],
     pdfNote:
-      'Para PDF, el resultado es una reconstrucción a partir del texto: columnas, tablas, imágenes, notas al pie y fórmulas pueden no conservarse.',
+      'Para PDF, el resultado es una reconstrucción a partir del texto y las imágenes incrustadas: columnas, tablas, gráficos vectoriales, notas al pie y fórmulas pueden no conservarse.',
     pdfNoteLink: 'Cómo funciona con PDF',
     faqTitle: 'Preguntas frecuentes',
     privacyTitle: 'Tu privacidad',
@@ -236,6 +237,8 @@ const es = {
       `Solo ${num(p, 'withText')} de ${num(p, 'total')} páginas contienen texto seleccionable. Las páginas escaneadas se han omitido y necesitarían OCR.`,
     PDF_DECODING: () => 'Algunos caracteres no se han podido decodificar (fuentes incrustadas). Revisa el resultado.',
     PDF_TRUNCATED: (p: P) => `El PDF tiene ${num(p, 'pages')} páginas; solo se han procesado las primeras ${num(p, 'max')}.`,
+    PDF_IMAGES_SKIPPED: (p: P) =>
+      `${num(p, 'count')} imagen(es) no se han podido incluir (límite de tamaño o de cantidad, o no se pudieron dibujar). El texto no se ve afectado.`,
     EPUB_UNREADABLE_CHAPTER: (p: P) => `Un capítulo (${str(p, 'path')}) no se pudo leer y se ha omitido.`,
     EPUB_NO_BODY: (p: P) => `Un capítulo (${str(p, 'path')}) no tiene contenido legible.`,
     EPUB_EMPTY_SECTIONS: (p: P) => `${num(p, 'count')} sección(es) sin texto (portadas, imágenes) se han omitido de la vista previa.`,
@@ -359,6 +362,7 @@ const en: Dict = {
     progress: 'Progress',
     stage: {
       'pdf-page': 'Reading page',
+      'pdf-images': 'Finding images on page',
       'epub-chapter': 'Reading chapter',
       'epub-transform': 'Transforming chapter',
       'pdf-build': 'Building PDF',
@@ -424,7 +428,7 @@ const en: Dict = {
       'Your document is processed in your browser: it is never uploaded to a server.',
     ],
     pdfNote:
-      'For PDFs, the result is a reconstruction from the text: columns, tables, images, footnotes and formulas may not be preserved.',
+      'For PDFs, the result is a reconstruction from the text and embedded images: columns, tables, vector graphics, footnotes and formulas may not be preserved.',
     pdfNoteLink: 'How PDFs work',
     faqTitle: 'Frequently asked questions',
     privacyTitle: 'Your privacy',
@@ -478,6 +482,8 @@ const en: Dict = {
       `Only ${num(p, 'withText')} of ${num(p, 'total')} pages contain selectable text. Scanned pages were skipped and would need OCR.`,
     PDF_DECODING: () => 'Some characters could not be decoded (embedded fonts). Please review the result.',
     PDF_TRUNCATED: (p: P) => `The PDF has ${num(p, 'pages')} pages; only the first ${num(p, 'max')} were processed.`,
+    PDF_IMAGES_SKIPPED: (p: P) =>
+      `${num(p, 'count')} image(s) could not be included (size or count limit, or they could not be drawn). The text is not affected.`,
     EPUB_UNREADABLE_CHAPTER: (p: P) => `A chapter (${str(p, 'path')}) could not be read and was skipped.`,
     EPUB_NO_BODY: (p: P) => `A chapter (${str(p, 'path')}) has no readable content.`,
     EPUB_EMPTY_SECTIONS: (p: P) => `${num(p, 'count')} section(s) without text (covers, images) were left out of the preview.`,

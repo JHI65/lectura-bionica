@@ -3,7 +3,7 @@ import { ConversionError } from './files/errors';
 import type { Locale } from '../i18n/locale';
 
 /** Etapa en curso. La interfaz la redacta en su idioma. */
-export type ProgressStage = 'pdf-page' | 'epub-chapter' | 'epub-transform' | 'pdf-build';
+export type ProgressStage = 'pdf-page' | 'pdf-images' | 'epub-chapter' | 'epub-transform' | 'pdf-build';
 
 export interface Progress {
   stage: ProgressStage;

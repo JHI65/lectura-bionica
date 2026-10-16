@@ -135,7 +135,7 @@ export const GUIDES_EN: SeoPage[] = [
           `Books with DRM or encrypted content: the tool detects them and refuses. It does not remove protections.`,
           `Chapters that are not strict XHTML: they are kept untransformed and you are told which ones.`,
           `Fixed-layout books (comics, illustrated albums): they contain mostly images and there is no text to transform.`,
-          `In the preview, images over 3 MB and SVG covers are not shown, for performance, but they are kept in the downloaded file.`,
+          `In the preview, very large photos are downsized so the page stays smooth and SVG covers are shown as an image; the downloaded file keeps the originals.`,
           `Files over ${MAX_MB} MB.`,
         ],
       },
@@ -201,7 +201,7 @@ export const GUIDES_EN: SeoPage[] = [
         list: [
           `It works well with single-column documents: novels, essays, articles and documents exported from a word processor.`,
           `It works less well with two or more columns, tables, footnotes, formulas, forms, slide decks and heavily designed publications, where the reading order may be wrong.`,
-          `Images, charts and links from the original PDF are not kept.`,
+          `Embedded images (photos, illustrations, figures) are included in their place between paragraphs, rasterized and downsized if they are very large. Vector graphics (drawn with strokes), links and scans that act as the page background are not kept.`,
         ],
       },
       {
@@ -244,11 +244,11 @@ export const GUIDES_EN: SeoPage[] = [
     faq: [
       {
         q: `Why does the file size differ from the original?`,
-        a: `Because it is built from scratch from the text, without the images or the internal structure of the original. It can be much smaller or, with many pages of text, somewhat larger.`,
+        a: `Because it is built from scratch from the text and the embedded images, without the internal structure of the original. It can be much smaller or, with many pages of text or images, somewhat larger.`,
       },
       {
         q: `Are the PDF's links lost?`,
-        a: `Yes. Only the text is extracted: the links, bookmarks and images of the original PDF are not kept.`,
+        a: `Yes. The text and the embedded images are extracted: the links and bookmarks of the original PDF are not kept.`,
       },
     ],
     cta: { label: `Convert a PDF` },

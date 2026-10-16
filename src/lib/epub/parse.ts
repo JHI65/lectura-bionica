@@ -5,15 +5,18 @@ import JSZip from 'jszip';
 import { ConversionError } from '../files/errors';
 import { sanitizeTree } from '../html/sanitize';
 import { removeBionicMarkup } from '../html/transform';
+import { previewImage, svgToImage } from './images';
 import type { EpubDocument, EpubSection } from '../document';
 import { createYielder, throwIfAborted, type TaskOptions } from '../async';
 import type { AppWarning } from '../warnings';
 import { disposeBook, openBook, type EpubBook } from './book';
 import { extensionOf, resolveZipPath } from './paths';
 
-const IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
-const MAX_TOTAL_IMAGE_BYTES = 25 * 1024 * 1024;
+const IMAGE_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']);
+/** Presupuesto de memoria para las imágenes de la vista previa (URLs data:). */
+const MAX_TOTAL_IMAGE_BYTES = 40 * 1024 * 1024;
+/** Imágenes originales por encima de esto no se intentan ni decodificar. */
+const MAX_ORIGINAL_BYTES = 25 * 1024 * 1024;
 const FONT_EXTENSIONS = new Set(['ttf', 'otf', 'woff', 'woff2']);
 
 interface TocEntry {
@@ -99,9 +102,32 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: 
 
     const sections: EpubSection[] = [];
     let imageBytes = 0;
+    // Una imagen se lee, reduce y codifica una sola vez aunque salga en varios capítulos.
+    const imageCache = new Map<string, string | null>();
+    const omitted = new Set<string>();
+    const loadImage = async (chapterPath: string, src: string): Promise<string | null> => {
+      if (!src || /^[a-z][a-z0-9+.-]*:/i.test(src)) return null; // externa o data: ya incrustada
+      const zipPath = resolveZipPath(chapterPath, src);
+      if (imageCache.has(zipPath)) return imageCache.get(zipPath) ?? null;
+      let result: string | null = null;
+      const entry = zip.file(zipPath);
+      const mime = mimeFromExtension(zipPath);
+      if (entry && mime) {
+        const bytes = await entry.async('uint8array');
+        if (bytes.byteLength <= MAX_ORIGINAL_BYTES) {
+          const image = await previewImage(bytes, mime);
+          if (image && imageBytes + image.size <= MAX_TOTAL_IMAGE_BYTES) {
+            imageBytes += image.size;
+            result = image.url;
+          }
+        }
+      }
+      if (!result && entry) omitted.add(zipPath); // existe pero no se puede mostrar: se avisa
+      imageCache.set(zipPath, result);
+      return result;
+    };
     let skippedEmpty = 0;
     let previouslyConverted = false;
-    let imagesOmitted = 0;
 
     for (const [index, item] of items.entries()) {
       throwIfAborted(signal);
@@ -123,24 +149,34 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: 
 
       // Imágenes: se incrustan como data: para que la vista previa sea aislada.
       const imageMap = new Map<string, string>();
-      const imageRefs = Array.from(body.querySelectorAll('img, image'));
-      for (const ref of imageRefs) {
-        const src = ref.getAttribute('src') ?? ref.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ?? ref.getAttribute('href') ?? '';
-        if (!src || /^[a-z]+:/i.test(src) || imageMap.has(src)) continue;
-        const zipPath = resolveZipPath(path, src);
-        const entry = zip.file(zipPath);
-        if (!entry) continue;
-        const bytes = await entry.async('uint8array');
-        const mime = mimeFromExtension(zipPath);
-        if (!mime || bytes.byteLength > MAX_IMAGE_BYTES || imageBytes + bytes.byteLength > MAX_TOTAL_IMAGE_BYTES) {
-          imagesOmitted++;
-          continue;
-        }
-        imageBytes += bytes.byteLength;
-        imageMap.set(src, `data:${mime};base64,${base64Of(bytes)}`);
+      for (const ref of Array.from(body.querySelectorAll('img'))) {
+        const src = ref.getAttribute('src') ?? '';
+        if (!src || imageMap.has(src)) continue;
+        const url = await loadImage(path, src);
+        if (url) imageMap.set(src, url);
       }
 
       const clone = body.cloneNode(true) as Element;
+      // Los <svg> (portadas, ilustraciones) pasan a <img>: dentro de <img> no ejecutan
+      // código. Si no, la limpieza los eliminaría y la sección quedaría «vacía».
+      let svgIndex = 0;
+      for (const svg of Array.from(clone.getElementsByTagNameNS('*', 'svg'))) {
+        if (svg.parentElement?.closest('svg')) continue; // los anidados van dentro del externo
+        const converted = await svgToImage(svg, (href) => loadImage(path, href));
+        if (!converted) {
+          svg.remove();
+          continue;
+        }
+        const key = `svg:${svgIndex++}`;
+        imageMap.set(key, converted.dataUrl);
+        const img = clone.ownerDocument.createElementNS(clone.namespaceURI, 'img');
+        img.setAttribute('src', key);
+        img.setAttribute('alt', converted.alt);
+        if (converted.width) img.setAttribute('width', String(Math.round(converted.width)));
+        if (converted.height) img.setAttribute('height', String(Math.round(converted.height)));
+        svg.replaceWith(img);
+      }
+
       if (removeBionicMarkup(clone) > 0) previouslyConverted = true;
       sanitizeTree(clone, {
         resolveImageSrc: (src) => imageMap.get(src) ?? null,
@@ -161,8 +197,8 @@ export async function parseEpub(buffer: ArrayBuffer, fileName: string, options: 
       });
     }
 
-    if (imagesOmitted > 0) {
-      warnings.push({ code: 'EPUB_IMAGES_OMITTED', params: { count: imagesOmitted } });
+    if (omitted.size > 0) {
+      warnings.push({ code: 'EPUB_IMAGES_OMITTED', params: { count: omitted.size } });
     }
     if (previouslyConverted) {
       warnings.push({ code: 'EPUB_PREVIOUSLY_CONVERTED' });
@@ -189,15 +225,6 @@ function decodeZipPath(url: string): string {
 
 function mimeFromExtension(path: string): string | null {
   const ext = extensionOf(path);
-  const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+  const mime = ext === 'jpg' ? 'image/jpeg' : ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
   return IMAGE_MIME.has(mime) ? mime : null;
-}
-
-function base64Of(bytes: Uint8Array): string {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
 }

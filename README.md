@@ -8,7 +8,7 @@ Aplicación web para convertir EPUB y PDF con texto a lectura biónica personali
 
 - React 18 + TypeScript + Vite 6 + Tailwind CSS 3 + React Router 6
 - **EPUB:** epub.js (metadatos, spine, índice, recursos) + JSZip (reescritura del paquete al exportar)
-- **PDF:** pdf.js (extracción de texto) + pdf-lib (generación del PDF transformado)
+- **PDF:** pdf.js (extracción de texto e imágenes) + pdf-lib (generación del PDF transformado)
 - **Cuenta y Premium (desactivados en el lanzamiento, `VITE_PREMIUM_ENABLED=false`):** Supabase (auth por enlace de correo, tabla de suscripciones con RLS) y Stripe Billing (Checkout, Portal, webhook firmado) mediante Edge Functions
 - **Publicidad:** Google AdSense, cargado solo con configuración válida y consentimiento
 
@@ -142,9 +142,9 @@ Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` n
 
 ## Limitaciones conocidas
 
-- **PDF:** el orden de lectura sigue el texto del PDF. Columnas, tablas, notas al pie y fórmulas pueden no conservarse. Los PDF escaneados se detectan y se rechazan, sin OCR.
+- **PDF:** el orden de lectura sigue el texto del PDF. Columnas, tablas, notas al pie y fórmulas pueden no conservarse. Se conservan las imágenes incrustadas (se rasteriza la zona que ocupan, máx. 1400 px, 12 por página y 150 por documento); no los gráficos vectoriales. Se descartan iconos de <30 pt, las imágenes repetidas en ≥3 páginas (logotipos) y el escaneo de fondo de una página que ya tiene texto. Los PDF escaneados sin texto se detectan y se rechazan, sin OCR.
 - **PDF exportado:** siempre sale en fondo blanco, para imprimir. No aplica el espaciado entre letras (pdf-lib no lo soporta).
-- **EPUB:** el DRM o cifrado de contenido no se procesa. Los capítulos que no son XHTML estricto se conservan sin transformar y se avisa. Las imágenes SVG de portada no se muestran en la vista previa.
+- **EPUB:** el DRM o cifrado de contenido no se procesa. Los capítulos que no son XHTML estricto se conservan sin transformar y se avisa. Las imágenes SVG se muestran en la vista previa como imagen y se conservan tal cual en la exportación.
 - **Web Workers:** el procesamiento corre en el hilo de la página (pdf.js usa su propio worker). La interfaz se mantiene fluida cediendo el control cada ~40 ms, con progreso y botón de cancelar. Las medidas están en `docs/lanzamiento.md`.
 - **SEO:** las páginas estáticas llevan título, descripción, canonical y sitemap propios, pero su contenido se renderiza en cliente. Si el posicionamiento es prioritario, conviene prerenderizar el cuerpo (p. ej. con vite-ssg).
 - **CSP:** se declara como `<meta>`. `frame-ancestors` solo puede configurarse en cabeceras del servidor. Si añades un endpoint de analítica, añádelo a `connect-src`.

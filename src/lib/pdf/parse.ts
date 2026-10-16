@@ -6,10 +6,24 @@ import { ConversionError } from '../files/errors';
 import type { PdfDocument, PdfSection } from '../document';
 import { createYielder, throwIfAborted, type TaskOptions } from '../async';
 import type { AppWarning } from '../warnings';
-import { buildBlocks, buildLines, type TextFragment } from './layout';
+import { buildBlocks, buildLines, type PageImage, type TextFragment, type TextLine } from './layout';
+import {
+  canRenderImages,
+  collectPlacements,
+  hasImageOps,
+  imageKey,
+  renderRegion,
+  selectPlacements,
+  type OpsTable,
+  type RenderedImage,
+} from './images';
 
 const MAX_PAGES = 2000;
 const MIN_CHARS_WITH_TEXT = 40;
+// Límites de imágenes: acotan la memoria y el tamaño del PDF resultante.
+const MAX_IMAGES = 150;
+const MAX_IMAGE_CHARS = 40_000_000; // ~30 MB de imágenes codificadas
+const REPEATED_ON_PAGES = 3;
 
 let workerConfigured = false;
 export function ensurePdfWorker(): void {
@@ -53,7 +67,9 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: P
     if (pageCount === 0) throw new ConversionError('PDF_DAMAGED', 'sin páginas');
     const pagesToRead = Math.min(pageCount, MAX_PAGES);
 
-    const sections: PdfSection[] = [];
+    // Pasada 1: texto (barata). Decide enseguida si el PDF es un escaneo sin texto,
+    // antes de gastar tiempo en dibujar imágenes de un documento que se va a rechazar.
+    const pagesText: Array<{ pageNumber: number; lines: TextLine[] }> = [];
     let extractedChars = 0;
     let pagesWithText = 0;
     let suspicious = 0;
@@ -78,19 +94,85 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: P
       }
 
       const lines = buildLines(fragments);
-      const blocks = buildBlocks(lines);
       const chars = lines.reduce((sum, line) => sum + line.text.length, 0);
       extractedChars += chars;
-      suspicious += lines.reduce((sum, line) => sum + (line.text.match(/[�-]/g)?.length ?? 0), 0);
-      if (blocks.length > 0) {
-        pagesWithText++;
-        sections.push({ id: `p${pageNumber}`, pageNumber, blocks });
-      }
+      suspicious += lines.reduce((sum, line) => sum + (line.text.match(/[\uFFFD\uE000-\uF8FF]/g)?.length ?? 0), 0);
+      if (chars > 0) pagesWithText++;
+      pagesText.push({ pageNumber, lines });
       page.cleanup();
     }
 
     if (extractedChars < MIN_CHARS_WITH_TEXT) {
       throw new ConversionError('PDF_NO_TEXT');
+    }
+
+    // Pasada 2: imágenes (solo en navegador, que es donde hay canvas).
+    const imagesByPage = new Map<number, RenderedImage[]>();
+    let imagesSkipped = 0;
+    if (canRenderImages()) {
+      const OPS = pdfjs.OPS as unknown as OpsTable;
+      let imageCount = 0;
+      let imageChars = 0;
+      for (const { pageNumber, lines } of pagesText) {
+        throwIfAborted(signal);
+        onProgress?.({ stage: 'pdf-images', done: pageNumber - 1, total: pagesToRead });
+        await yieldToUi();
+        const page = await pdf.getPage(pageNumber);
+        try {
+          const ops = await page.getOperatorList();
+          if (!hasImageOps(ops, OPS)) continue;
+          const [x0, y0, x1, y1] = page.view;
+          const chosen = selectPlacements(
+            collectPlacements(ops, OPS),
+            { left: x0, bottom: y0, width: x1 - x0, height: y1 - y0 },
+            lines.length > 0,
+          );
+          for (const area of chosen) {
+            if (imageCount >= MAX_IMAGES || imageChars >= MAX_IMAGE_CHARS) {
+              imagesSkipped++;
+              continue;
+            }
+            const rendered = await renderRegion(page, area).catch(() => null);
+            if (!rendered) {
+              imagesSkipped++;
+              continue;
+            }
+            imageCount++;
+            imageChars += rendered.src.length;
+            imagesByPage.set(pageNumber, [...(imagesByPage.get(pageNumber) ?? []), rendered]);
+          }
+        } catch (error) {
+          if (error instanceof ConversionError) throw error;
+          imagesSkipped++; // una página con operaciones raras no debe romper el texto
+        } finally {
+          page.cleanup();
+        }
+      }
+
+      // La misma imagen en 3 o más páginas es una cabecera, pie o logotipo, no contenido.
+      const pagesPerImage = new Map<string, Set<number>>();
+      for (const [pageNumber, list] of imagesByPage) {
+        for (const image of list) {
+          const key = imageKey(image.src);
+          pagesPerImage.set(key, (pagesPerImage.get(key) ?? new Set()).add(pageNumber));
+        }
+      }
+      for (const [pageNumber, list] of imagesByPage) {
+        const kept = list.filter((image) => (pagesPerImage.get(imageKey(image.src))?.size ?? 0) < REPEATED_ON_PAGES);
+        if (kept.length > 0) imagesByPage.set(pageNumber, kept);
+        else imagesByPage.delete(pageNumber);
+      }
+    }
+
+    const sections: PdfSection[] = [];
+    for (const { pageNumber, lines } of pagesText) {
+      const images: PageImage[] = (imagesByPage.get(pageNumber) ?? []).map((image) => ({
+        top: image.top,
+        bottom: image.bottom,
+        block: { kind: 'image', text: '', src: image.src, widthPt: image.widthPt, heightPt: image.heightPt },
+      }));
+      const blocks = buildBlocks(lines, images);
+      if (blocks.length > 0) sections.push({ id: `p${pageNumber}`, pageNumber, blocks });
     }
 
     const warnings: AppWarning[] = [{ code: 'PDF_ORDER' }];
@@ -103,6 +185,7 @@ export async function parsePdf(buffer: ArrayBuffer, fileName: string, options: P
     if (pageCount > MAX_PAGES) {
       warnings.push({ code: 'PDF_TRUNCATED', params: { pages: pageCount, max: MAX_PAGES } });
     }
+    if (imagesSkipped > 0) warnings.push({ code: 'PDF_IMAGES_SKIPPED', params: { count: imagesSkipped } });
 
     const meta = await pdf.getMetadata().catch(() => null);
     const info = (meta?.info ?? {}) as { Title?: string };

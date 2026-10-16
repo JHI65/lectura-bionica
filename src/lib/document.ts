@@ -13,11 +13,16 @@ export interface EpubSection {
   path: string;
 }
 
-export type PdfBlockKind = 'heading' | 'paragraph' | 'listItem';
+export type PdfBlockKind = 'heading' | 'paragraph' | 'listItem' | 'image';
 
 export interface PdfBlock {
   kind: PdfBlockKind;
   text: string;
+  /** Solo en kind 'image': data URL (PNG o JPEG) de la zona rasterizada. */
+  src?: string;
+  /** Solo en kind 'image': tamaño original en puntos, para conservar la proporción al exportar. */
+  widthPt?: number;
+  heightPt?: number;
 }
 
 export interface PdfSection {

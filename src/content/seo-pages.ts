@@ -161,7 +161,7 @@ const GUIDES_ES: SeoPage[] = [
           'Libros con DRM o contenido cifrado: la herramienta los detecta y los rechaza. No elimina protecciones.',
           'Capítulos que no sean XHTML estricto: se conservan sin transformar y se te avisa de cuáles son.',
           'Libros en maquetación fija (cómics, álbumes ilustrados): contienen sobre todo imágenes y no hay texto que transformar.',
-          'En la vista previa, las imágenes de más de 3 MB y las portadas en SVG no se muestran por rendimiento, pero sí se conservan en el archivo descargado.',
+          'En la vista previa, las fotos muy grandes se reducen para que la página vaya fluida y las portadas en SVG se muestran como imagen; el archivo descargado conserva las originales.',
           `Archivos de más de ${MAX_MB} MB.`,
         ],
       },
@@ -228,7 +228,7 @@ const GUIDES_ES: SeoPage[] = [
         list: [
           'Funciona bien con documentos de una sola columna: novelas, ensayos, artículos y documentos exportados desde un procesador de textos.',
           'Funciona peor con dos o más columnas, tablas, notas al pie, fórmulas, formularios, presentaciones y publicaciones muy maquetadas, donde el orden de lectura puede no ser el correcto.',
-          'No se conservan las imágenes, los gráficos ni los enlaces del PDF original.',
+          'Se incluyen las imágenes incrustadas (fotos, ilustraciones, figuras) en su posición entre los párrafos, rasterizadas y reducidas si son muy grandes. No se conservan los gráficos vectoriales (dibujados con trazos), los enlaces ni los escaneos que funcionan como fondo de la página.',
         ],
       },
       {
@@ -271,11 +271,11 @@ const GUIDES_ES: SeoPage[] = [
     faq: [
       {
         q: '¿Por qué pesa distinto que el original?',
-        a: 'Porque se genera desde cero a partir del texto, sin imágenes ni la estructura interna del original. Puede pesar bastante menos o, con muchas páginas de texto, algo más.',
+        a: 'Porque se genera desde cero a partir del texto y de las imágenes incrustadas, sin la estructura interna del original. Puede pesar bastante menos o, con muchas páginas de texto o imágenes, algo más.',
       },
       {
         q: '¿Se pierden los enlaces del PDF?',
-        a: 'Sí. Solo se extrae el texto: los enlaces, los marcadores y las imágenes del PDF original no se conservan.',
+        a: 'Sí. Se extrae el texto y las imágenes incrustadas: los enlaces y los marcadores del PDF original no se conservan.',
       },
     ],
     cta: { label: 'Convertir un PDF' },

@@ -89,6 +89,10 @@ export function sanitizeTree(root: Element, options: SanitizeOptions = {}): void
 
 function sanitizeAttributes(el: Element, tag: string, options: SanitizeOptions): void {
   const allowed = TAG_ATTRS[tag];
+  let dropElement = false;
+
+  // Se recorren SIEMPRE todos los atributos: salir antes dejaría sin revisar los
+  // que vienen después (p. ej. onerror tras src).
   for (const attr of Array.from(el.attributes)) {
     const name = attr.name.toLowerCase();
     const keep = GLOBAL_ATTRS.has(name) || (allowed?.has(name) ?? false);
@@ -110,10 +114,11 @@ function sanitizeAttributes(el: Element, tag: string, options: SanitizeOptions):
     if (name === 'src' && tag === 'img') {
       const resolved = resolveImage(attr.value, options);
       if (resolved) el.setAttribute('src', resolved);
-      else el.remove();
-      return; // el puede haberse eliminado
+      else dropElement = true; // se elimina al terminar, tras revisar el resto
     }
   }
+
+  if (dropElement) el.remove();
 }
 
 function resolveImage(src: string, options: SanitizeOptions): string | null {

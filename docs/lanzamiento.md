@@ -23,7 +23,7 @@ Medido en Chrome de escritorio (headless, Apple Silicon), build de producción:
 | Documento | Importar | Exportar | Memoria JS tras exportar | Salida |
 |---|---|---|---|---|
 | PDF 400 pág. de texto (0,4 MB) | 0,8 s | 1,1 s | 35 MB | 3,2 MB |
-| PDF 17 MB con imágenes | 0,2 s | 0,1 s | 10 MB | texto solo |
+| PDF 17 MB con imágenes (3 figuras) | 0,4 s | 0,2 s | no medida | 4,6 MB, con las 3 imágenes |
 | EPUB 16 MB, 250 capítulos | 0,8 s | 2,1 s | 32 MB | 15,8 MB |
 
 Ninguna tarea superó 50 ms de bloqueo del hilo principal. **No medido:** móviles reales ni equipos con poca RAM; el límite de 20 MB es una cifra conservadora, no un valor probado en esos dispositivos. Se ajusta con una variable.

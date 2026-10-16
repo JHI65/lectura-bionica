@@ -18,6 +18,22 @@ body {
   overflow-x: hidden;
 }
 
+/* Animación al tocar el logo o el nombre: el logo da un saltito y gira un poco. */
+.logo-link:active {
+  transform: scale(0.96);
+}
+.logo-link {
+  transition: transform 0.15s ease-out;
+}
+.logo-pop {
+  animation: logo-pop 0.5s ease-out;
+}
+@keyframes logo-pop {
+  0% { transform: scale(1) rotate(0); }
+  40% { transform: scale(1.25) rotate(-12deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
 /* Respeta la preferencia de movimiento reducido del usuario. */
 @media (prefers-reduced-motion: reduce) {
   *,

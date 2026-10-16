@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CookieBanner } from './CookieBanner';
 import { openCookiePreferences } from '../lib/state/consent';
 import { usePremium } from '../hooks/usePremium';
@@ -34,6 +34,8 @@ export function Layout() {
   const premium = usePremium();
   const consent = useConsent();
   const visitCounted = useRef(false);
+  // Cada clic en el logo cambia la clave: la página se monta de cero (subida reiniciada).
+  const [homeClicks, setHomeClicks] = useState(0);
   const otherLocale: Locale = locale === 'es' ? 'en' : 'es';
   const showPremium = config.premiumEnabled && locale === 'es';
 
@@ -67,9 +69,9 @@ export function Layout() {
         {/* Filete con el degradado del logo: solo decorativo. */}
         <div className="h-1 bg-brand-gradient" aria-hidden="true" />
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-          <Link to={href('home')} className="mr-auto flex min-h-[44px] items-center gap-2 rounded-lg font-semibold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+          <Link to={href('home')} onClick={() => setHomeClicks((n) => n + 1)} className="logo-link mr-auto flex min-h-[44px] items-center gap-2 rounded-lg font-semibold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             {/* Decorativo: el nombre al lado ya lo describe. */}
-            <img src={`${import.meta.env.BASE_URL}logo.png`} width={36} height={36} alt="" className="h-9 w-9" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} width={36} height={36} alt="" className={`h-9 w-9 ${homeClicks > 0 ? 'logo-pop' : ''}`} key={homeClicks} />
             {brand}
           </Link>
           {/* El selector de idioma va en la fila del logo: dentro del menú con scroll
@@ -104,7 +106,7 @@ export function Layout() {
       </header>
 
       <main id="contenido" className="flex-1">
-        <Outlet />
+        <Outlet key={homeClicks} />
       </main>
 
       <footer className="border-t border-slate-200 bg-white" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

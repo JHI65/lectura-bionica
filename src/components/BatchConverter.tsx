@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Alert } from './Alert';
 import { SettingsPanel } from './SettingsPanel';
-import { AddFilesButton } from './AddFilesButton';
+import { AddFilesButton, DropMoreRow } from './AddFilesButton';
 import { DocumentPreview } from './DocumentPreview';
 import { btnPrimary, btnSecondary, card } from './ui';
 import { useI18n } from '../i18n/useI18n';
@@ -162,7 +162,9 @@ export function BatchConverter({ files, maxBytes, settings, onChange, onReset, o
           </div>
         </div>
 
-        <ul aria-label={b.listLabel} className={`${card} max-h-64 divide-y divide-slate-200 overflow-y-auto p-0`}>
+        {/* Hasta 4 archivos la tarjeta crece; después la lista se desplaza y la fila de soltar sigue visible. */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <ul aria-label={b.listLabel} className="max-h-[11.25rem] divide-y divide-slate-200 overflow-y-auto">
           {items.map((item, index) => (
             <li key={`${item.name}:${index}`} className={`flex items-stretch ${index === selectedIndex ? 'bg-brand-soft' : ''}`}>
               <button
@@ -192,7 +194,9 @@ export function BatchConverter({ files, maxBytes, settings, onChange, onReset, o
               </button>
             </li>
           ))}
-        </ul>
+          </ul>
+          {phase === 'setup' && <DropMoreRow onFiles={onAdd} />}
+        </div>
 
         {selectedFile && (
           <div className="space-y-3" aria-live="polite">

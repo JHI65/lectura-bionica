@@ -13,7 +13,9 @@ function parseMaxMb(value: string | undefined): number {
 
 /** Límites de Premium. Se aplican en el navegador: el archivo nunca llega a un servidor. */
 export const PREMIUM_MAX_FILE_MB = parsePremiumMaxMb(import.meta.env.VITE_PREMIUM_MAX_FILE_MB);
+/** Archivos por lote: 20 con Premium; el plan gratuito (si Premium está activo en el sitio) tiene un máximo menor. */
 export const BATCH_MAX_FILES = 20;
+export const BATCH_MAX_FREE = 5;
 
 function parsePremiumMaxMb(value: string | undefined): number {
   const parsed = Number(value);

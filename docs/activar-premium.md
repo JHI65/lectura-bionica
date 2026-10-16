@@ -2,7 +2,7 @@
 
 Premium está programado y desplegado, pero apagado. Esta lista lleva de cero a cobrar. Hazla en orden y **prueba todo en modo test de Stripe antes de pasar a real**.
 
-Qué incluye Premium: sin anuncios, archivos de hasta 300 MB, conversión por lotes (20 archivos, ZIP), plan mensual (2,99 €) y anual (24,99 €) con 7 días de prueba en la primera suscripción.
+Qué incluye Premium: sin anuncios, archivos de hasta 300 MB, lotes de hasta 20 archivos en ZIP (gratis: hasta 5), plan mensual (2,99 €) y anual (24,99 €) con 7 días de prueba en la primera suscripción.
 
 Arquitectura: la web (GitHub Pages) habla con **Supabase** (cuentas con Google o enlace por correo, y la tabla `subscriptions`). Cuatro **Edge Functions** hablan con Stripe: `create-checkout-session`, `create-portal-session`, `entitlement` y `stripe-webhook`. Solo el webhook escribe en la tabla.
 
@@ -74,7 +74,7 @@ VITE_PREMIUM_TRIAL_DAYS=7
 
 - [ ] `npm run dev`, abrir `/cuenta` y probar **Continuar con Google** y el **enlace por correo**.
 - [ ] Suscribirse al plan **anual** con la tarjeta de prueba `4242 4242 4242 4242`: debe mostrar la prueba de 7 días y, al volver, pasar a Premium (puede tardar unos segundos).
-- [ ] Con Premium: sin anuncios, etiqueta de 300 MB, y carga de varios archivos (lote + ZIP).
+- [ ] Con Premium: sin anuncios, etiqueta de 300 MB, y lotes de hasta 20 archivos (sin Premium, el aviso aparece al pasar de 5).
 - [ ] «Gestionar facturación»: cambiar a mensual, cancelar y comprobar que sigue Premium hasta el fin del periodo.
 - [ ] Segunda suscripción del mismo usuario tras cancelar: **no** debe ofrecer prueba de nuevo.
 - [ ] Pago fallido: tarjeta `4000 0000 0000 0341` → Premium debe desactivarse (`past_due` no da acceso).

@@ -5,7 +5,7 @@ import { btnPrimary, card, linkBtn, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { usePremium } from '../hooks/usePremium';
 import { getSupabase } from '../lib/auth/supabase';
-import { BATCH_MAX_FILES, config, isSupabaseConfigured, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
+import { BATCH_MAX_FILES, BATCH_MAX_FREE, config, isSupabaseConfigured, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
 import { track } from '../lib/state/analytics';
 
 type Plan = 'monthly' | 'yearly';
@@ -22,7 +22,7 @@ const COMPARISON: { feature: string; free: string; premium: string }[] = [
   { feature: 'Conversión de EPUB y PDF, ajustes y descarga', free: 'Incluida', premium: 'Incluida' },
   { feature: 'Anuncios', free: 'Discretos, fuera del texto', premium: 'Ninguno' },
   { feature: 'Tamaño máximo por archivo', free: `${config.maxFileMb} MB`, premium: `${PREMIUM_MAX_FILE_MB} MB` },
-  { feature: 'Conversión por lotes', free: 'Un archivo cada vez', premium: `Hasta ${BATCH_MAX_FILES} archivos en un ZIP` },
+  { feature: 'Conversión por lotes', free: `Hasta ${BATCH_MAX_FREE} archivos por lote`, premium: `Hasta ${BATCH_MAX_FILES} archivos por lote` },
 ];
 
 const QUESTIONS: { q: string; a: string }[] = [
@@ -83,7 +83,7 @@ export function PremiumPage() {
       <header className="space-y-4">
         <h1 className={sectionTitle}>Premium: sin anuncios, archivos grandes y lotes</h1>
         <p className="max-w-2xl text-lg leading-relaxed text-ink-soft">
-          Todo lo gratuito, más archivos de hasta {PREMIUM_MAX_FILE_MB} MB, conversión de hasta {BATCH_MAX_FILES} archivos a la vez y ninguna publicidad.
+          Todo lo gratuito, más archivos de hasta {PREMIUM_MAX_FILE_MB} MB, lotes de hasta {BATCH_MAX_FILES} archivos y ninguna publicidad.
         </p>
       </header>
 

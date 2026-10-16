@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert } from './Alert';
 import { AdSlot } from './AdSlot';
+import { AddFilesButton } from './AddFilesButton';
 import { BatchConverter } from './BatchConverter';
 import { Dropzone } from './Dropzone';
 import { ReaderPreview } from './ReaderPreview';
@@ -18,7 +19,7 @@ import type { EpubSection, ParsedDocument, PdfSection } from '../lib/document';
 import { downloadBlob } from '../lib/download';
 import { previewCss, sectionBodyHtml } from '../lib/preview';
 import { track } from '../lib/state/analytics';
-import { BATCH_MAX_FILES, config, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
+import { BATCH_MAX_FILES, BATCH_MAX_FREE, config, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
 import type { AppWarning } from '../lib/warnings';
 
 type Phase = 'idle' | 'reading' | 'ready' | 'exporting' | 'done' | 'error';
@@ -71,6 +72,28 @@ function WarningList({ warnings }: { warnings: AppWarning[] }) {
   );
 }
 
+/** Aviso cuando se pasan más archivos de los que admite un lote. */
+function LimitNotice({ kind, limit }: { kind: 'limit' | 'trimmed'; limit: number }) {
+  const { t, href } = useI18n();
+  if (kind === 'trimmed') {
+    return (
+      <Alert tone="info" title={t.batch.trimmedTitle}>
+        <p>{t.batch.trimmedBody(limit)}</p>
+      </Alert>
+    );
+  }
+  return (
+    <Alert tone="info" title={t.batch.limitTitle}>
+      <p>
+        {t.batch.limitBody(BATCH_MAX_FREE, BATCH_MAX_FILES)}{' '}
+        <Link className={linkBtn} to={href('premium')}>
+          {t.batch.premiumLink}
+        </Link>
+      </p>
+    </Alert>
+  );
+}
+
 /**
  * Herramienta de conversión completa (importar → vista previa → descargar).
  * Se usa en la portada y en /convertir. Los parsers (epub.js, pdf.js) se cargan
@@ -88,7 +111,13 @@ export function Converter() {
   const maxBytes = maxFileBytes(isPremium);
   const maxMb = isPremium ? Math.max(config.maxFileMb, PREMIUM_MAX_FILE_MB) : config.maxFileMb;
   const [batchFiles, setBatchFiles] = useState<File[] | null>(null);
-  const [batchNotice, setBatchNotice] = useState<'premium' | 'trimmed' | null>(null);
+  const [batchNotice, setBatchNotice] = useState<'limit' | 'trimmed' | null>(null);
+  // Varios archivos a la vez: para todos. Si Premium está disponible en este sitio, el plan
+  // gratuito tiene un máximo menor por lote; si no lo está, no hay nada que ofrecer y el máximo es el mismo.
+  const premiumOffered = locale === 'es' && config.premiumEnabled;
+  const batchLimit = isPremium || !premiumOffered ? BATCH_MAX_FILES : BATCH_MAX_FREE;
+  // Archivo cargado ahora mismo, para poder pasarlo a un lote si se añaden más.
+  const currentFileRef = useRef<File | null>(null);
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [doc, setDoc] = useState<ParsedDocument | null>(null);
@@ -128,18 +157,38 @@ export function Converter() {
 
   const cancel = () => abortRef.current?.abort();
 
-  // Varios archivos a la vez: lotes para Premium; para el resto, se avisa (si Premium
-  // está activo en este sitio) o se usa solo el primero, como siempre.
+  /** Une archivos nuevos a los que ya hay, sin repetir, hasta el máximo por lote. */
+  const addToBatch = (current: File[], added: File[]) => {
+    const key = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
+    const seen = new Set(current.map(key));
+    const merged = [...current];
+    for (const f of added) {
+      if (seen.has(key(f))) continue;
+      seen.add(key(f));
+      merged.push(f);
+    }
+    const trimmed = merged.length > batchLimit;
+    setBatchNotice(trimmed ? (premiumOffered && !isPremium ? 'limit' : 'trimmed') : null);
+    return merged.slice(0, batchLimit);
+  };
+
+  // Varios archivos a la vez abren el modo lote; uno solo, la vista previa de siempre.
   const handleFiles = (files: File[]) => {
     setBatchNotice(null);
     if (files.length === 1) return void handleFile(files[0]);
-    if (!isPremium) {
-      if (locale === 'es' && config.premiumEnabled) setBatchNotice('premium');
-      else void handleFile(files[0]);
-      return;
-    }
-    if (files.length > BATCH_MAX_FILES) setBatchNotice('trimmed');
-    setBatchFiles(files.slice(0, BATCH_MAX_FILES));
+    setBatchFiles(addToBatch([], files));
+  };
+
+  // Desde la vista previa o desde un lote ya empezado: suma archivos al lote.
+  const handleAddFiles = (added: File[]) => {
+    const base = batchFiles ?? (currentFileRef.current ? [currentFileRef.current] : []);
+    abortRef.current?.abort();
+    setDoc(null);
+    setFailure(null);
+    setExportFailure(null);
+    setDoneFile(null);
+    setPhase('idle');
+    setBatchFiles(addToBatch(base, added));
   };
 
   const handleFile = async (file: File) => {
@@ -148,6 +197,7 @@ export function Converter() {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    currentFileRef.current = file;
     setPhase('reading');
     setFailure(null);
     setExportFailure(null);
@@ -210,6 +260,7 @@ export function Converter() {
     abortRef.current?.abort();
     setBatchFiles(null);
     setBatchNotice(null);
+    currentFileRef.current = null;
     setDoc(null);
     setFailure(null);
     setExportFailure(null);
@@ -227,12 +278,16 @@ export function Converter() {
 
       {phase === 'idle' && batchFiles && (
         <>
-          {batchNotice === 'trimmed' && (
-            <Alert tone="info" title="Se han tomado los primeros archivos">
-              <p>El máximo por lote es de {BATCH_MAX_FILES} archivos.</p>
-            </Alert>
-          )}
-          <BatchConverter files={batchFiles} maxBytes={maxBytes} settings={settings} onChange={update} onReset={reset} onExit={restart} />
+          {batchNotice && <LimitNotice kind={batchNotice} limit={batchLimit} />}
+          <BatchConverter
+            files={batchFiles}
+            maxBytes={maxBytes}
+            settings={settings}
+            onChange={update}
+            onReset={reset}
+            onExit={restart}
+            onAdd={handleAddFiles}
+          />
         </>
       )}
 
@@ -242,17 +297,8 @@ export function Converter() {
             <h2 id="import-title" className="sr-only">
               {t.dropzone.title}
             </h2>
-            <Dropzone onFile={handleFile} onFiles={isPremium || (locale === 'es' && config.premiumEnabled) ? handleFiles : undefined} maxMb={maxMb} />
-            {batchNotice === 'premium' && (
-              <Alert tone="info" title="La conversión por lotes es de Premium">
-                <p>
-                  Con Premium puedes convertir hasta {BATCH_MAX_FILES} archivos de una vez.{' '}
-                  <Link className={linkBtn} to="/premium">
-                    Ver Premium
-                  </Link>
-                </p>
-              </Alert>
-            )}
+            <Dropzone onFile={handleFile} onFiles={handleFiles} maxMb={maxMb} />
+            {batchNotice && <LimitNotice kind={batchNotice} limit={batchLimit} />}
             <div className={`${card} text-sm leading-relaxed text-ink-soft`}>
               <p className="font-semibold text-ink">{t.converter.privacyTitle}</p>
               <p className="mt-1">{t.converter.privacyBody}</p>
@@ -306,9 +352,12 @@ export function Converter() {
                   {t.converter.summary(noun, formatBytes(fileSize, numberLocale), doc.sections.length, doc.kind)}
                 </p>
               </div>
-              <button type="button" className={btnSecondary} onClick={restart}>
-                {t.converter.changeDocument}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <AddFilesButton onFiles={handleAddFiles} disabled={isWorking} />
+                <button type="button" className={btnSecondary} onClick={restart}>
+                  {t.converter.changeDocument}
+                </button>
+              </div>
             </div>
 
             {doc.sections.length > 1 && (

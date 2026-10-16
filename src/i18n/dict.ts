@@ -72,7 +72,7 @@ const es = {
 
   dropzone: {
     title: 'Arrastra tu EPUB o PDF aquí',
-    hint: 'o pulsa para elegir un archivo desde tu dispositivo',
+    hint: 'o pulsa para elegir uno o varios archivos desde tu dispositivo',
     chip: (mb: number) => `EPUB o PDF con texto seleccionable · hasta ${mb}\u00a0MB`,
     aria: 'Seleccionar documento EPUB o PDF',
   },
@@ -149,6 +149,33 @@ const es = {
     doneTitle: 'Descarga iniciada',
   },
 
+  batch: {
+    title: 'Conversión por lotes',
+    summary: (count: number, size: string) => `${count} archivos · ${size} · mismos ajustes para todos`,
+    changeFiles: 'Cambiar archivos',
+    addMore: 'Añadir más archivos',
+    downloadTitle: 'Descarga',
+    setupBody: 'Se convierten uno a uno y se descargan juntos en un ZIP. Los archivos que fallen no detienen el resto.',
+    convertAll: (count: number) => `Convertir ${count} archivos`,
+    working: (current: number, total: number) => `Convirtiendo ${current} de ${total}…`,
+    status: { pending: 'En espera', working: 'Convirtiendo…', done: 'Listo', error: 'Error', cancelled: 'Cancelado' },
+    doneTitle: 'Lote terminado',
+    doneCount: (done: number, total: number, failed: number) =>
+      `${done} de ${total} convertidos${failed > 0 ? `, ${failed} con error` : ''}.`,
+    noneTitle: 'No se convirtió ningún archivo',
+    noneBody: 'Revisa los errores de cada archivo.',
+    zipFailedTitle: 'No se pudo crear el ZIP',
+    zipFailedBody: 'Inténtalo con menos archivos.',
+    zipAgain: 'Descargar el ZIP otra vez',
+    convertAgain: 'Volver a convertir',
+    zipName: (count: number) => `readably-${count}-${count === 1 ? 'archivo' : 'archivos'}.zip`,
+    trimmedTitle: 'Se han tomado los primeros archivos',
+    trimmedBody: (max: number) => `El máximo por lote es de ${max} archivos.`,
+    limitTitle: 'Límite de archivos por lote',
+    limitBody: (free: number, premium: number) => `Con la versión gratuita puedes convertir hasta ${free} archivos de una vez. Con Premium, hasta ${premium}.`,
+    premiumLink: 'Ver Premium',
+  },
+
   home: {
     eyebrow: 'Personalización de la lectura',
     h1: 'Conversor PDF/EPUB a Lectura Biónica',
@@ -191,7 +218,7 @@ const es = {
     privacyLink: 'Leer la política de privacidad',
     premiumTitle: 'Premium: sin anuncios y con lotes',
     premiumBody: (price: string) =>
-      `Todas las funciones gratuitas, sin publicidad, archivos de hasta 300\u00a0MB y conversión por lotes. Desde ${price}, cancelable en cualquier momento.`,
+      `Todas las funciones gratuitas, sin publicidad, archivos de hasta 300\u00a0MB y lotes de hasta 20 archivos. Desde ${price}, cancelable en cualquier momento.`,
     premiumLink: 'Ver Premium',
   },
 
@@ -319,7 +346,7 @@ const en: Dict = {
 
   dropzone: {
     title: 'Drag your EPUB or PDF here',
-    hint: 'or click to choose a file from your device',
+    hint: 'or click to choose one or more files from your device',
     chip: (mb: number) => `EPUB or PDF with selectable text · up to ${mb}\u00a0MB`,
     aria: 'Select an EPUB or PDF document',
   },
@@ -393,6 +420,33 @@ const en: Dict = {
     generating: 'Creating file…',
     download: (noun: string) => `Download transformed ${noun}`,
     doneTitle: 'Download started',
+  },
+
+  batch: {
+    title: 'Batch conversion',
+    summary: (count: number, size: string) => `${count} files · ${size} · same settings for all`,
+    changeFiles: 'Change files',
+    addMore: 'Add more files',
+    downloadTitle: 'Download',
+    setupBody: 'Files are converted one by one and downloaded together in a ZIP. A file that fails does not stop the rest.',
+    convertAll: (count: number) => `Convert ${count} files`,
+    working: (current: number, total: number) => `Converting ${current} of ${total}…`,
+    status: { pending: 'Waiting', working: 'Converting…', done: 'Done', error: 'Error', cancelled: 'Cancelled' },
+    doneTitle: 'Batch finished',
+    doneCount: (done: number, total: number, failed: number) =>
+      `${done} of ${total} converted${failed > 0 ? `, ${failed} failed` : ''}.`,
+    noneTitle: 'No file was converted',
+    noneBody: 'Check the error shown for each file.',
+    zipFailedTitle: 'The ZIP could not be created',
+    zipFailedBody: 'Try again with fewer files.',
+    zipAgain: 'Download the ZIP again',
+    convertAgain: 'Convert again',
+    zipName: (count: number) => `readably-${count}-${count === 1 ? 'file' : 'files'}.zip`,
+    trimmedTitle: 'The first files were used',
+    trimmedBody: (max: number) => `The maximum per batch is ${max} files.`,
+    limitTitle: 'Files per batch',
+    limitBody: (free: number, premium: number) => `You can convert up to ${free} files at once. The limit is ${premium} for other plans.`,
+    premiumLink: 'More info',
   },
 
   home: {

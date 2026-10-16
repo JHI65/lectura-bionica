@@ -76,6 +76,20 @@ export function Layout() {
           </Link>
           {/* El selector de idioma va en la fila del logo: dentro del menú con scroll
               horizontal quedaba cortado en pantallas estrechas. */}
+          {/* Acceso a la cuenta: «Iniciar sesión» para quien no ha entrado y «Mi cuenta» después.
+              Solo existe en español y cuando Premium está activo. */}
+          {showPremium && isSupabaseConfigured && premium.status !== 'loading' && (
+            <Link
+              to={pathFor('account', 'es')}
+              className={`order-2 min-h-[44px] shrink-0 content-center rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:order-3 ${
+                premium.status === 'anonymous'
+                  ? 'bg-button-gradient text-ink shadow-sm hover:brightness-95'
+                  : 'border border-slate-300 text-ink hover:bg-slate-100'
+              }`}
+            >
+              {premium.status === 'anonymous' ? t.nav.login : premium.status === 'premium' ? t.nav.accountPremium : t.nav.account}
+            </Link>
+          )}
           <Link
             to={counterpart(pathname, otherLocale)}
             hrefLang={otherLocale}
@@ -94,11 +108,6 @@ export function Layout() {
             {showPremium && (
               <NavLink to={pathFor('premium', 'es')} className={navClass}>
                 {t.nav.premium}
-              </NavLink>
-            )}
-            {showPremium && isSupabaseConfigured && (
-              <NavLink to={pathFor('account', 'es')} className={navClass}>
-                {premium.status === 'premium' ? t.nav.accountPremium : t.nav.account}
               </NavLink>
             )}
           </nav>

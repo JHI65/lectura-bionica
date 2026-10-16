@@ -39,10 +39,10 @@ export const GUIDES_EN: SeoPage[] = [
         ],
       },
       {
-        heading: `What the evidence says`,
+        heading: `What to expect`,
         paragraphs: [
-          `It is worth being clear: there is no solid evidence that this format increases reading speed or improves comprehension in general. The comparisons published so far have not shown consistent improvements over normal text, and experience varies a lot from person to person.`,
-          `What you do see in practice is that some people find it more comfortable, less dense, or easier to pick up again after a distraction, while others find it gets in the way. That is why it is offered here as a personalization option you can turn on, adjust or turn off at any time.`,
+          `It is a personalization option: some people find it more comfortable, less dense, or easier to pick up again after a distraction, while others notice no difference or find it gets in the way.`,
+          `Published studies have not consistently shown improvements in reading speed or comprehension, and experience varies from person to person. That is why it is best to try it on your own texts, adjust it or turn it off whenever you like, and keep what works for you.`,
         ],
       },
       {

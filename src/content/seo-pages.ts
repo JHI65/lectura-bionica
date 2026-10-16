@@ -64,10 +64,10 @@ const GUIDES_ES: SeoPage[] = [
         ],
       },
       {
-        heading: 'Qué dice la evidencia',
+        heading: 'Qué puedes esperar',
         paragraphs: [
-          'Conviene ser claros: no hay pruebas sólidas de que este formato aumente la velocidad de lectura ni mejore la comprensión de forma general. Las comparaciones publicadas hasta ahora no han mostrado mejoras consistentes frente al texto normal, y la experiencia varía mucho de una persona a otra.',
-          'Lo que sí se observa en la práctica es que algunas personas lo encuentran más cómodo, menos denso o más fácil de retomar tras una distracción, y que otras lo notan como un estorbo. Por eso se presenta aquí como una opción de personalización que puedes activar, ajustar o desactivar en cualquier momento.',
+          'Es una opción de personalización: algunas personas lo encuentran más cómodo, menos denso o más fácil de retomar tras una distracción, y otras no notan diferencia o lo ven como un estorbo.',
+          'Los estudios publicados hasta ahora no han mostrado de forma consistente mejoras en la velocidad o la comprensión, y la experiencia varía de una persona a otra. Por eso lo mejor es probarlo con tus propios textos, ajustarlo o desactivarlo cuando quieras y quedarte con lo que te resulte útil.',
         ],
       },
       {

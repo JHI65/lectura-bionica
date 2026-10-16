@@ -74,7 +74,7 @@ function homeJsonLd(locale, path) {
       mainEntity: faq.map((item) => ({
         '@type': 'Question',
         name: item[locale].q,
-        acceptedAnswer: { '@type': 'Answer', text: item[locale].a.replace('{maxMb}', String(maxMb)) },
+        acceptedAnswer: { '@type': 'Answer', text: (locale === 'es' && premiumEnabled ? (item.es.aPremium ?? item.es.a) : item[locale].a).replace('{maxMb}', String(maxMb)) },
       })),
     },
   ];

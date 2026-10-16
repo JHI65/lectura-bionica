@@ -116,8 +116,8 @@
     "requires": "premium",
     "es": {
       "path": "/premium",
-      "title": "Premium sin anuncios",
-      "description": "Suscripción Premium para usar la aplicación sin anuncios. Todas las funciones gratuitas siguen disponibles."
+      "title": "Premium: sin anuncios, archivos grandes y lotes",
+      "description": "Suscripción Premium: sin anuncios, archivos de hasta 100 MB y conversión por lotes en un ZIP. Plan mensual o anual con prueba gratuita."
     }
   },
   {

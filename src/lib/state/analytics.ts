@@ -14,12 +14,14 @@ export type AnalyticsEvent =
   | 'download_completed'
   | 'conversion_error'
   | 'returning_visit'
+  | 'batch_started'
+  | 'batch_completed'
   | 'premium_checkout_started'
   | 'premium_canceled';
 
 type ParamValue = string | number | boolean;
 
-const ALLOWED_PARAMS = new Set(['format', 'intensity', 'error_code', 'plan', 'bionic', 'returning', 'page', 'source', 'lang']);
+const ALLOWED_PARAMS = new Set(['format', 'intensity', 'error_code', 'plan', 'bionic', 'returning', 'page', 'source', 'lang', 'count']);
 const ALLOWED_VALUES: Record<string, ReadonlySet<string>> = {
   format: new Set(['epub', 'pdf']),
   error_code: new Set([
@@ -27,7 +29,7 @@ const ALLOWED_VALUES: Record<string, ReadonlySet<string>> = {
     'PDF_DAMAGED', 'PDF_PROTECTED', 'PDF_NO_TEXT', 'EXPORT_FAILED', 'EXPORT_VERIFY_FAILED', 'RESOURCE_LIMIT', 'UNKNOWN',
   ]),
   intensity: new Set(['suave', 'media', 'alta']),
-  plan: new Set(['premium']),
+  plan: new Set(['premium', 'monthly', 'yearly']),
   lang: new Set(['es', 'en']),
 };
 

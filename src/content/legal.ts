@@ -160,7 +160,7 @@ const ES: LegalDocument[] = [
         {
           heading: '4. Premium',
           paragraphs: [
-            'La suscripción Premium elimina los anuncios y se renueva automáticamente hasta que la canceles desde tu cuenta. Los pagos los gestiona Stripe. Precio vigente y condiciones de consumo (incluido el derecho de desistimiento): [COMPLETAR].',
+            'La suscripción Premium elimina los anuncios, eleva el tamaño máximo por archivo y permite convertir varios archivos a la vez. Hay plan mensual y anual, y la primera suscripción puede incluir un periodo de prueba gratuita. La suscripción se renueva automáticamente hasta que la canceles desde tu cuenta. Los pagos los gestiona Stripe. Precio vigente y condiciones de consumo (incluido el derecho de desistimiento): [COMPLETAR].',
           ],
         },
       ]),

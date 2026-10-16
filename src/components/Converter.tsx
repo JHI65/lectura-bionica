@@ -2,20 +2,23 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert } from './Alert';
 import { AdSlot } from './AdSlot';
+import { BatchConverter } from './BatchConverter';
 import { Dropzone } from './Dropzone';
 import { ReaderPreview } from './ReaderPreview';
 import { SettingsPanel } from './SettingsPanel';
 import { StepTracker } from './StepTracker';
 import { btnPrimary, btnSecondary, card, linkBtn } from './ui';
+import { usePremium } from '../hooks/usePremium';
 import { useSettings } from '../hooks/useSettings';
 import { useI18n } from '../i18n/useI18n';
 import type { Progress } from '../lib/async';
 import { ConversionError, toConversionError, type ConversionErrorCode, type ErrorParams } from '../lib/files/errors';
-import { formatBytes } from '../lib/files/validate';
+import { formatBytes, maxFileBytes } from '../lib/files/validate';
 import type { EpubSection, ParsedDocument, PdfSection } from '../lib/document';
 import { downloadBlob } from '../lib/download';
 import { previewCss, sectionBodyHtml } from '../lib/preview';
 import { track } from '../lib/state/analytics';
+import { BATCH_MAX_FILES, config, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
 import type { AppWarning } from '../lib/warnings';
 
 type Phase = 'idle' | 'reading' | 'ready' | 'exporting' | 'done' | 'error';
@@ -79,6 +82,14 @@ export function Converter() {
   // Los sliders siguen respondiendo mientras la vista previa se recalcula.
   const deferredSettings = useDeferredValue(settings);
 
+  // Premium (verificado por el backend): archivos más grandes y conversión por lotes.
+  // Solo existe en español. Mientras no esté confirmado, se aplican los límites gratuitos.
+  const isPremium = usePremium().status === 'premium';
+  const maxBytes = maxFileBytes(isPremium);
+  const maxMb = isPremium ? Math.max(config.maxFileMb, PREMIUM_MAX_FILE_MB) : config.maxFileMb;
+  const [batchFiles, setBatchFiles] = useState<File[] | null>(null);
+  const [batchNotice, setBatchNotice] = useState<'premium' | 'trimmed' | null>(null);
+
   const [phase, setPhase] = useState<Phase>('idle');
   const [doc, setDoc] = useState<ParsedDocument | null>(null);
   const [sectionIndex, setSectionIndex] = useState(0);
@@ -117,6 +128,20 @@ export function Converter() {
 
   const cancel = () => abortRef.current?.abort();
 
+  // Varios archivos a la vez: lotes para Premium; para el resto, se avisa (si Premium
+  // está activo en este sitio) o se usa solo el primero, como siempre.
+  const handleFiles = (files: File[]) => {
+    setBatchNotice(null);
+    if (files.length === 1) return void handleFile(files[0]);
+    if (!isPremium) {
+      if (locale === 'es' && config.premiumEnabled) setBatchNotice('premium');
+      else void handleFile(files[0]);
+      return;
+    }
+    if (files.length > BATCH_MAX_FILES) setBatchNotice('trimmed');
+    setBatchFiles(files.slice(0, BATCH_MAX_FILES));
+  };
+
   const handleFile = async (file: File) => {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -133,7 +158,7 @@ export function Converter() {
     track('conversion_started', { lang: locale });
     try {
       const { parseDocument } = await import('../lib/convert');
-      const parsed = await parseDocument(file, { signal: controller.signal, onProgress: setProgress });
+      const parsed = await parseDocument(file, { signal: controller.signal, onProgress: setProgress, maxBytes });
       setDoc(parsed);
       setSectionIndex(0);
       setPhase('ready');
@@ -183,6 +208,8 @@ export function Converter() {
 
   const restart = () => {
     abortRef.current?.abort();
+    setBatchFiles(null);
+    setBatchNotice(null);
     setDoc(null);
     setFailure(null);
     setExportFailure(null);
@@ -198,13 +225,34 @@ export function Converter() {
     <div className="space-y-8">
       <StepTracker current={STEP_BY_PHASE[phase]} />
 
-      {phase === 'idle' && (
+      {phase === 'idle' && batchFiles && (
+        <>
+          {batchNotice === 'trimmed' && (
+            <Alert tone="info" title="Se han tomado los primeros archivos">
+              <p>El máximo por lote es de {BATCH_MAX_FILES} archivos.</p>
+            </Alert>
+          )}
+          <BatchConverter files={batchFiles} maxBytes={maxBytes} settings={settings} onChange={update} onReset={reset} onExit={restart} />
+        </>
+      )}
+
+      {phase === 'idle' && !batchFiles && (
         <div>
           <section aria-labelledby="import-title" className="space-y-4">
             <h2 id="import-title" className="sr-only">
               {t.dropzone.title}
             </h2>
-            <Dropzone onFile={handleFile} />
+            <Dropzone onFile={handleFile} onFiles={isPremium || (locale === 'es' && config.premiumEnabled) ? handleFiles : undefined} maxMb={maxMb} />
+            {batchNotice === 'premium' && (
+              <Alert tone="info" title="La conversión por lotes es de Premium">
+                <p>
+                  Con Premium puedes convertir hasta {BATCH_MAX_FILES} archivos de una vez.{' '}
+                  <Link className={linkBtn} to="/premium">
+                    Ver Premium
+                  </Link>
+                </p>
+              </Alert>
+            )}
             <div className={`${card} text-sm leading-relaxed text-ink-soft`}>
               <p className="font-semibold text-ink">{t.converter.privacyTitle}</p>
               <p className="mt-1">{t.converter.privacyBody}</p>
@@ -238,7 +286,7 @@ export function Converter() {
               {t.converter.codeLabel}: {failure.code}
             </p>
           </Alert>
-          <Dropzone onFile={handleFile} />
+          <Dropzone onFile={handleFile} maxMb={maxMb} />
           <button type="button" className={btnSecondary} onClick={restart}>
             {t.converter.restart}
           </button>

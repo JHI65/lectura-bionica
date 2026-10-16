@@ -12,9 +12,14 @@ import { parsePdf } from './pdf/parse';
 import { exportPdf } from './pdf/export';
 import type { TaskOptions } from './async';
 
-export async function parseDocument(file: File, options: TaskOptions = {}): Promise<ParsedDocument> {
+export interface ParseOptions extends TaskOptions {
+  /** Tamaño máximo en bytes; por defecto el del plan gratuito. */
+  maxBytes?: number;
+}
+
+export async function parseDocument(file: File, options: ParseOptions = {}): Promise<ParsedDocument> {
   try {
-    const { kind } = await validateFile(file);
+    const { kind } = await validateFile(file, options.maxBytes);
     const buffer = await file.arrayBuffer();
 
     if (kind === 'pdf') return await parsePdf(buffer, file.name, options);

@@ -55,6 +55,7 @@ Decisiones relevantes:
 - **EPUB exportado.** Se conserva el ZIP original (mimetype primero y sin comprimir, recursos byte a byte). Solo cambian los capítulos y el OPF (se registra una hoja de estilo con la tipografía elegida). Antes de descargar, el resultado se reabre con JSZip y con epub.js; si algo falla, no se entrega.
 - **PDF exportado.** Es una reconstrucción A4 con negrita bionica real (fragmento en negrita y resto en normal). Las fuentes estándar solo cubren WinAnsi: el resto de caracteres se sustituye por `?` y se avisa.
 - **Premium nunca se decide en el cliente.** El estado sale de `entitlement`, que lee la tabla `subscriptions`. Esa tabla solo la escribe el webhook de Stripe tras verificar la firma. Nada de Premium se guarda en `localStorage`. Ante un error, los anuncios no se ocultan.
+- **Ventajas de Premium.** Quitar anuncios, archivos de hasta 100 MB y conversión por lotes (hasta 20 archivos, ZIP). Los límites se aplican en el navegador, porque los archivos nunca llegan a un servidor: son una comodidad, no una barrera de seguridad. Solo se activan con `status === 'premium'` confirmado por el backend.
 - **Anuncios.** Política única en `src/lib/state/ads.ts`: sin consentimiento de publicidad no se carga **ningún** script de anuncios (ni «no personalizados»: en la UE también usan cookies y requieren consentimiento); Premium verificado nunca ve anuncios; sin identificadores válidos no hay anuncios en producción; en desarrollo aparece un placeholder marcado como tal. Hueco reservado de 280 px para evitar saltos de diseño, siempre fuera del texto leído y lejos de los controles.
 - **Analítica.** Solo con consentimiento y a un endpoint propio (`VITE_ANALYTICS_ENDPOINT`). Los parámetros pasan por una lista blanca: nunca nombres de archivo, texto ni contenido de libros.
 
@@ -101,6 +102,8 @@ Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
 | `VITE_PREMIUM_ENABLED` | No | `true` activa Premium, cuentas y sus páginas. Por defecto apagado |
 | `VITE_BASE` | No | Ruta base si se sirve bajo un subdirectorio (p. ej. `/lectura-bionica/`). `npm run deploy:pages` la define |
 | `VITE_PREMIUM_PRICE_LABEL` | No | Precio mostrado. Por defecto `2,99 €/mes` |
+| `VITE_PREMIUM_YEARLY_PRICE_LABEL` | No | Precio anual mostrado. Por defecto `24,99 €/año` |
+| `VITE_PREMIUM_TRIAL_DAYS` | No | Días de prueba anunciados (0 = sin prueba). Por defecto 7; igual que `STRIPE_TRIAL_DAYS` |
 | `VITE_ANALYTICS_ENDPOINT` | No | Endpoint propio de analítica |
 
 Variables del servidor (Supabase → Edge Functions → Secrets):
@@ -110,7 +113,9 @@ Variables del servidor (Supabase → Edge Functions → Secrets):
 | `SITE_URL` | Igual que `VITE_SITE_URL`. Define el CORS y las URLs de retorno (nunca se aceptan desde el cliente) |
 | `STRIPE_SECRET_KEY` | Clave secreta de Stripe (modo test primero) |
 | `STRIPE_WEBHOOK_SECRET` | Secreto de firma del endpoint de webhook |
-| `STRIPE_PRICE_ID` | Price de 2,99 €/mes creado en Stripe |
+| `STRIPE_PRICE_ID` | Price mensual de 2,99 € creado en Stripe |
+| `STRIPE_PRICE_ID_YEARLY` | Price anual de 24,99 € creado en Stripe |
+| `STRIPE_TRIAL_DAYS` | Días de prueba en la primera suscripción (por defecto 7; `0` la desactiva) |
 
 `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase automáticamente.
 
@@ -118,11 +123,11 @@ Variables del servidor (Supabase → Edge Functions → Secrets):
 
 1. **Base de datos.** En Supabase, ejecuta `supabase/migrations/0001_subscriptions.sql`. Activa el proveedor de email (magic link) en *Authentication*.
 2. **Funciones.** `supabase functions deploy entitlement create-checkout-session create-portal-session stripe-webhook`. `supabase/config.toml` desactiva la verificación JWT solo para el webhook.
-3. **Secretos.** `supabase secrets set SITE_URL=... STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... STRIPE_PRICE_ID=...`
+3. **Secretos.** `supabase secrets set SITE_URL=... STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... STRIPE_PRICE_ID=... STRIPE_PRICE_ID_YEARLY=... STRIPE_TRIAL_DAYS=7`
 4. **Stripe.**
-   - Crea un producto con un precio recurrente mensual de 2,99 € (EUR).
+   - Crea un producto con dos precios recurrentes en EUR: mensual de 2,99 € y anual de 24,99 €.
    - En *Webhooks*, apunta a `https://<proyecto>.supabase.co/functions/v1/stripe-webhook` y escucha: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
-   - Activa el *Customer Portal* (cambio de método de pago, facturas y cancelación).
+   - Activa el *Customer Portal* (cambio de método de pago, facturas y cancelación) y permite el cambio entre el plan mensual y el anual.
 5. **Frontend.** Rellena `.env.production` con las variables `VITE_*`. Despliega `dist/` en un hosting estático. El fichero `public/_redirects` sirve para Netlify o Cloudflare Pages; en otros hosts configura la reescritura de rutas a `index.html`.
 
 Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` no haya pasado. `past_due` (pago fallido) **no** da acceso; la cancelación al final del periodo mantiene el acceso hasta esa fecha.

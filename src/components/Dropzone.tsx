@@ -5,11 +5,15 @@ import { config } from '../lib/state/config';
 
 interface Props {
   onFile: (file: File) => void;
+  /** Si se indica, se usa en lugar de onFile y permite elegir varios archivos (lotes). */
+  onFiles?: (files: File[]) => void;
+  /** Límite que se muestra en la etiqueta (por defecto, el del plan gratuito). */
+  maxMb?: number;
   disabled?: boolean;
   accept?: string;
 }
 
-export function Dropzone({ onFile, disabled = false, accept = '.epub,.pdf,application/epub+zip,application/pdf' }: Props) {
+export function Dropzone({ onFile, onFiles, maxMb = config.maxFileMb, disabled = false, accept = '.epub,.pdf,application/epub+zip,application/pdf' }: Props) {
   const { t } = useI18n();
   const [dragging, setDragging] = useState(false);
 
@@ -17,8 +21,13 @@ export function Dropzone({ onFile, disabled = false, accept = '.epub,.pdf,applic
     event.preventDefault();
     setDragging(false);
     if (disabled) return;
-    const file = event.dataTransfer.files?.[0];
-    if (file) onFile(file);
+    deliver(Array.from(event.dataTransfer.files ?? []));
+  };
+
+  const deliver = (files: File[]) => {
+    if (files.length === 0) return;
+    if (onFiles) onFiles(files);
+    else onFile(files[0]);
   };
 
   return (
@@ -38,16 +47,17 @@ export function Dropzone({ onFile, disabled = false, accept = '.epub,.pdf,applic
         accept={accept}
         className="sr-only"
         disabled={disabled}
+        multiple={Boolean(onFiles)}
         onChange={(e) => {
-          const file = e.target.files?.[0];
+          const files = Array.from(e.target.files ?? []);
           e.target.value = '';
-          if (file) onFile(file);
+          deliver(files);
         }}
         aria-label={t.dropzone.aria}
       />
       <span className="text-lg font-semibold text-ink">{t.dropzone.title}</span>
       <span className="text-sm text-ink-soft">{t.dropzone.hint}</span>
-      <span className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-ink-soft">{t.dropzone.chip(config.maxFileMb)}</span>
+      <span className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-ink-soft">{t.dropzone.chip(maxMb)}</span>
     </label>
   );
 }

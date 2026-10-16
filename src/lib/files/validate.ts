@@ -1,13 +1,13 @@
 // Validación del archivo subido. Nunca confía en la extensión ni en el MIME
 // declarado por el navegador: se inspeccionan los bytes iniciales (firma).
 
-import { config } from '../state/config';
+import { config, PREMIUM_MAX_FILE_MB } from '../state/config';
 import { ConversionError } from './errors';
 
 export type DocumentKind = 'epub' | 'pdf';
 
-export function maxFileBytes(): number {
-  return config.maxFileMb * 1024 * 1024;
+export function maxFileBytes(premium = false): number {
+  return (premium ? Math.max(config.maxFileMb, PREMIUM_MAX_FILE_MB) : config.maxFileMb) * 1024 * 1024;
 }
 
 /** Tamaño legible: 1,4 MB / 1.4 MB, 320 KB. El separador decimal depende del idioma. */
@@ -35,12 +35,12 @@ export function sniffKind(header: Uint8Array): 'zip' | 'pdf' | null {
  * Valida tamaño y firma. Para ZIP la comprobación EPUB (mimetype) la hace
  * el parser, que tiene el contenido completo. Devuelve el tipo detectado.
  */
-export async function validateFile(file: File): Promise<{ kind: 'pdf' | 'zip' }> {
+export async function validateFile(file: File, maxBytes = maxFileBytes()): Promise<{ kind: 'pdf' | 'zip' }> {
   if (file.size === 0) throw new ConversionError('EMPTY_FILE');
-  if (file.size > maxFileBytes()) {
-    throw new ConversionError('FILE_TOO_LARGE', `${formatBytes(file.size)} > ${formatBytes(maxFileBytes())}`, {
+  if (file.size > maxBytes) {
+    throw new ConversionError('FILE_TOO_LARGE', `${formatBytes(file.size)} > ${formatBytes(maxBytes)}`, {
       sizeBytes: file.size,
-      maxBytes: maxFileBytes(),
+      maxBytes,
     });
   }
 

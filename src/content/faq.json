@@ -91,7 +91,7 @@
     "id": "faq-9",
     "es": {
       "q": "¿Qué incluye Premium?",
-      "a": "Todas las funciones gratuitas sin anuncios. La suscripción se gestiona con Stripe y puedes cancelarla o cambiar los datos de facturación desde tu cuenta."
+      "a": "Todas las funciones gratuitas, sin anuncios, con archivos de hasta 100 MB y conversión por lotes de hasta 20 archivos en un ZIP. Hay plan mensual y anual, con prueba gratuita en la primera suscripción. La suscripción se gestiona con Stripe y puedes cancelarla o cambiar los datos de facturación desde tu cuenta."
     },
     "en": {
       "q": "What does Premium include?",

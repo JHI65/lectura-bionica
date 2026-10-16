@@ -189,9 +189,9 @@ const es = {
     privacyBody:
       'Procesamos tus archivos en tu navegador. Solo guardamos tus ajustes de lectura en este dispositivo. Los anuncios y la analítica requieren tu consentimiento.',
     privacyLink: 'Leer la política de privacidad',
-    premiumTitle: 'Premium: sin anuncios',
+    premiumTitle: 'Premium: sin anuncios y con lotes',
     premiumBody: (price: string) =>
-      `Todas las funciones gratuitas, sin publicidad en la aplicación. ${price}, cancelable en cualquier momento.`,
+      `Todas las funciones gratuitas, sin publicidad, archivos de hasta 100\u00a0MB y conversión por lotes. Desde ${price}, cancelable en cualquier momento.`,
     premiumLink: 'Ver Premium',
   },
 

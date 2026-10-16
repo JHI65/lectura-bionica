@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Alert } from '../components/Alert';
 import { btnPrimary, btnSecondary, card, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
@@ -153,7 +153,7 @@ export function AccountPage() {
           </div>
           <div>
             <dt className="text-ink-soft">Plan</dt>
-            <dd className="font-medium">{premium.status === 'premium' ? 'Premium (sin anuncios)' : 'Gratuito'}</dd>
+            <dd className="font-medium">{premium.status === 'premium' ? 'Premium' : 'Gratuito'}</dd>
           </div>
           <div>
             <dt className="text-ink-soft">Estado de la suscripción</dt>
@@ -175,9 +175,9 @@ export function AccountPage() {
               Gestionar facturación y cancelación
             </button>
           ) : (
-            <button type="button" className={btnPrimary} onClick={() => openBilling('create-checkout-session')} disabled={busy}>
-              Suscribirme a Premium
-            </button>
+            <Link to="/premium" className={btnPrimary}>
+              Ver planes de Premium
+            </Link>
           )}
           <button type="button" className={btnSecondary} onClick={signOut}>
             Cerrar sesión

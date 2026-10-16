@@ -77,12 +77,12 @@ export const GUIDES_EN: SeoPage[] = [
     ],
     faq: [
       {
-        q: `Does it help with ADHD?`,
-        a: `There is no solid evidence that it improves reading in general for people with ADHD. Some people say they find it more comfortable and others notice no difference. If reading is persistently difficult, talk to a professional.`,
+        q: `Can it be useful with ADHD?`,
+        a: `It is a very personal experience: some people with ADHD say they find it more comfortable and others notice no difference. It is best to try it on your own texts and keep what works. It is not a treatment and does not replace professional support; if reading is persistently difficult, talk to a professional.`,
       },
       {
         q: `What about dyslexia?`,
-        a: `There is no solid evidence there either. For some people, other adjustments help more, such as larger line height, more letter spacing, a moderate line width or a less bright background. They are covered in the typography guide.`,
+        a: `It varies from person to person here too. For some people, other adjustments help more, such as larger line height, more letter spacing, a moderate line width or a less bright background. They are covered in the typography guide.`,
       },
       {
         q: `Why is part of each word grey?`,
@@ -382,7 +382,7 @@ export const GUIDES_EN: SeoPage[] = [
       {
         heading: `Bionic reading: one more option`,
         paragraphs: [
-          `Bionic reading is one more option within this set. There is no solid evidence that it improves reading in general, so it is best treated as a tool you try and drop if it adds nothing.`,
+          `Bionic reading is one more option within this set. It is best treated as a tool you try and drop if it adds nothing.`,
         ],
       },
       {

@@ -102,12 +102,12 @@ const GUIDES_ES: SeoPage[] = [
     ],
     faq: [
       {
-        q: '¿Sirve para el TDAH?',
-        a: 'No hay evidencia sólida de que mejore la lectura de forma general en personas con TDAH. Algunas personas cuentan que les resulta más cómoda y otras no notan diferencia. Si la lectura te resulta difícil de forma persistente, consulta con un profesional.',
+        q: '¿Puede resultar útil con el TDAH?',
+        a: 'Es una experiencia muy personal: algunas personas con TDAH cuentan que les resulta más cómoda y otras no notan diferencia. Lo mejor es probarla con tus propios textos y quedarte con lo que te funcione. No es un tratamiento ni sustituye a ningún apoyo profesional; si la lectura te resulta difícil de forma persistente, consulta con un profesional.',
       },
       {
         q: '¿Y para la dislexia?',
-        a: 'Tampoco hay pruebas sólidas. Para algunas personas ayudan más otros ajustes, como un interlineado mayor, más espaciado entre letras, un ancho de línea moderado o un fondo menos brillante. Los tienes explicados en la guía de personalización tipográfica.',
+        a: 'También varía de una persona a otra. Para algunas personas ayudan más otros ajustes, como un interlineado mayor, más espaciado entre letras, un ancho de línea moderado o un fondo menos brillante. Los tienes explicados en la guía de personalización tipográfica.',
       },
       {
         q: '¿Por qué parte de cada palabra aparece en gris?',
@@ -411,7 +411,7 @@ const GUIDES_ES: SeoPage[] = [
       {
         heading: 'Lectura biónica: una opción más',
         paragraphs: [
-          'La lectura biónica es una opción más dentro de este conjunto. No hay pruebas sólidas de que mejore la lectura de forma general, así que es mejor tratarla como una herramienta que se prueba y se descarta si no aporta.',
+          'La lectura biónica es una opción más dentro de este conjunto. Es mejor tratarla como una herramienta que se prueba y se descarta si no aporta.',
         ],
       },
       {

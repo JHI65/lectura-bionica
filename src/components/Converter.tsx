@@ -1,11 +1,11 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert } from './Alert';
 import { AdSlot } from './AdSlot';
 import { AddFilesButton } from './AddFilesButton';
 import { BatchConverter } from './BatchConverter';
 import { Dropzone } from './Dropzone';
-import { ReaderPreview } from './ReaderPreview';
+import { DocumentPreview, WarningList } from './DocumentPreview';
 import { SettingsPanel } from './SettingsPanel';
 import { StepTracker } from './StepTracker';
 import { btnPrimary, btnSecondary, card, linkBtn } from './ui';
@@ -15,9 +15,8 @@ import { useI18n } from '../i18n/useI18n';
 import type { Progress } from '../lib/async';
 import { ConversionError, toConversionError, type ConversionErrorCode, type ErrorParams } from '../lib/files/errors';
 import { formatBytes, maxFileBytes } from '../lib/files/validate';
-import type { EpubSection, ParsedDocument, PdfSection } from '../lib/document';
+import type { ParsedDocument } from '../lib/document';
 import { downloadBlob } from '../lib/download';
-import { previewCss, sectionBodyHtml } from '../lib/preview';
 import { track } from '../lib/state/analytics';
 import { BATCH_MAX_FILES, BATCH_MAX_FREE, config, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
 import type { AppWarning } from '../lib/warnings';
@@ -60,18 +59,6 @@ function ProgressPanel({ progress, onCancel, label }: { progress: Progress | nul
   );
 }
 
-function WarningList({ warnings }: { warnings: AppWarning[] }) {
-  const { t } = useI18n();
-  return (
-    <ul className="list-disc space-y-1 pl-5">
-      {warnings.map((w) => {
-        const text = t.warnings[w.code](w.params ?? {});
-        return <li key={`${w.code}:${text}`}>{text}</li>;
-      })}
-    </ul>
-  );
-}
-
 /** Aviso cuando se pasan más archivos de los que admite un lote. */
 function LimitNotice({ kind, limit }: { kind: 'limit' | 'trimmed'; limit: number }) {
   const { t, href } = useI18n();
@@ -102,8 +89,6 @@ function LimitNotice({ kind, limit }: { kind: 'limit' | 'trimmed'; limit: number
 export function Converter() {
   const { t, locale, numberLocale, href } = useI18n();
   const { settings, update, reset } = useSettings();
-  // Los sliders siguen respondiendo mientras la vista previa se recalcula.
-  const deferredSettings = useDeferredValue(settings);
 
   // Premium (verificado por el backend): archivos más grandes y conversión por lotes.
   // Solo existe en español. Mientras no esté confirmado, se aplican los límites gratuitos.
@@ -121,7 +106,6 @@ export function Converter() {
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [doc, setDoc] = useState<ParsedDocument | null>(null);
-  const [sectionIndex, setSectionIndex] = useState(0);
   const [failure, setFailure] = useState<Failure | null>(null);
   const [exportFailure, setExportFailure] = useState<Failure | null>(null);
   const [exportWarnings, setExportWarnings] = useState<AppWarning[]>([]);
@@ -134,26 +118,6 @@ export function Converter() {
   const abortRef = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
   useEffect(() => () => abortRef.current?.abort(), []);
-
-  const safeIndex = doc ? Math.min(sectionIndex, doc.sections.length - 1) : 0;
-  const section = doc?.sections[safeIndex];
-
-  const sectionLabel = (value: EpubSection | PdfSection, index: number): string => {
-    if ('pageNumber' in value) return t.converter.pdfPage(value.pageNumber);
-    return value.title ?? t.converter.sectionFallback(index + 1);
-  };
-
-  // La negrita solo se recalcula si cambia la cantidad de letras o el interruptor;
-  // la tipografía y el tema se aplican como CSS, sin volver a transformar.
-  const { boldRatio, bionicEnabled } = deferredSettings;
-  const previewBody = useMemo(() => {
-    if (!doc) return '';
-    const current = doc.sections[Math.min(sectionIndex, doc.sections.length - 1)];
-    if (!current) return `<p>${t.converter.noText}</p>`;
-    return sectionBodyHtml(doc, current, { ...deferredSettings, boldRatio, bionicEnabled });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, sectionIndex, boldRatio, bionicEnabled, locale]);
-  const css = useMemo(() => previewCss(settings), [settings]);
 
   const cancel = () => abortRef.current?.abort();
 
@@ -177,6 +141,18 @@ export function Converter() {
     setBatchNotice(null);
     if (files.length === 1) return void handleFile(files[0]);
     setBatchFiles(addToBatch([], files));
+  };
+
+  // Quitar un archivo del lote. Con uno solo queda la vista previa de siempre; sin ninguno, el inicio.
+  const handleRemoveFile = (index: number) => {
+    const rest = (batchFiles ?? []).filter((_, i) => i !== index);
+    setBatchNotice(null);
+    if (rest.length === 0) return restart();
+    if (rest.length === 1) {
+      setBatchFiles(null);
+      return void handleFile(rest[0]);
+    }
+    setBatchFiles(rest);
   };
 
   // Desde la vista previa o desde un lote ya empezado: suma archivos al lote.
@@ -210,7 +186,6 @@ export function Converter() {
       const { parseDocument } = await import('../lib/convert');
       const parsed = await parseDocument(file, { signal: controller.signal, onProgress: setProgress, maxBytes });
       setDoc(parsed);
-      setSectionIndex(0);
       setPhase('ready');
       track('format_imported', { format: parsed.kind, lang: locale });
     } catch (error) {
@@ -287,6 +262,7 @@ export function Converter() {
             onReset={reset}
             onExit={restart}
             onAdd={handleAddFiles}
+            onRemove={handleRemoveFile}
           />
         </>
       )}
@@ -360,57 +336,7 @@ export function Converter() {
               </div>
             </div>
 
-            {doc.sections.length > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className={`${btnSecondary} px-3`}
-                  onClick={() => setSectionIndex((i) => Math.max(0, i - 1))}
-                  disabled={safeIndex === 0}
-                  aria-label={t.converter.previous}
-                >
-                  ←
-                </button>
-                <label className="sr-only" htmlFor="section-select">
-                  {t.converter.chooseSection}
-                </label>
-                <select
-                  id="section-select"
-                  value={safeIndex}
-                  onChange={(e) => setSectionIndex(Number(e.target.value))}
-                  className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm"
-                >
-                  {doc.sections.map((s, i) => (
-                    <option key={s.id} value={i}>
-                      {sectionLabel(s, i)}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={`${btnSecondary} px-3`}
-                  onClick={() => setSectionIndex((i) => Math.min(doc.sections.length - 1, i + 1))}
-                  disabled={safeIndex >= doc.sections.length - 1}
-                  aria-label={t.converter.next}
-                >
-                  →
-                </button>
-              </div>
-            )}
-
-            <ReaderPreview
-              body={previewBody}
-              css={css}
-              lang={locale}
-              resetKey={`${doc.fileName}:${section?.id ?? ''}`}
-              title={t.converter.previewTitle(section ? sectionLabel(section, safeIndex) : doc.title)}
-            />
-
-            {doc.warnings.length > 0 && (
-              <Alert tone="info" title={t.converter.warningsTitle}>
-                <WarningList warnings={doc.warnings} />
-              </Alert>
-            )}
+            <DocumentPreview key={doc.fileName} doc={doc} settings={settings} />
           </section>
 
           <aside className="space-y-6" aria-label={t.converter.settingsAria}>

@@ -5,10 +5,13 @@ import { useEffect, useRef, useState, type ComponentProps } from 'react';
 import { Alert } from './Alert';
 import { SettingsPanel } from './SettingsPanel';
 import { AddFilesButton } from './AddFilesButton';
+import { DocumentPreview } from './DocumentPreview';
 import { btnPrimary, btnSecondary, card } from './ui';
 import { useI18n } from '../i18n/useI18n';
 import { runBatch, zipOutputs, type BatchItem } from '../lib/batch';
 import type { ReadingSettings } from '../lib/bionic/settings';
+import type { ParsedDocument } from '../lib/document';
+import { toConversionError, type ConversionError } from '../lib/files/errors';
 import { downloadBlob } from '../lib/download';
 import { formatBytes } from '../lib/files/validate';
 import { track } from '../lib/state/analytics';
@@ -22,11 +25,21 @@ interface Props {
   onExit: () => void;
   /** Añade más archivos al lote (solo antes de empezar). */
   onAdd: (files: File[]) => void;
+  /** Quita un archivo del lote. */
+  onRemove: (index: number) => void;
 }
 
 type Phase = 'setup' | 'running' | 'done';
 
-export function BatchConverter({ files, maxBytes, settings, onChange, onReset, onExit, onAdd }: Props) {
+type PreviewState =
+  | { status: 'loading' }
+  | { status: 'ready'; doc: ParsedDocument; key: string }
+  | { status: 'error'; error: ConversionError };
+
+const fileKey = (f: File) => `${f.name}:${f.size}:${f.lastModified}`;
+const PREVIEW_CACHE = 3;
+
+export function BatchConverter({ files, maxBytes, settings, onChange, onReset, onExit, onAdd, onRemove }: Props) {
   const { t, locale, numberLocale } = useI18n();
   const b = t.batch;
   const [phase, setPhase] = useState<Phase>('setup');
@@ -35,6 +48,42 @@ export function BatchConverter({ files, maxBytes, settings, onChange, onReset, o
   const [zipError, setZipError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Vista previa del archivo elegido. Se guardan los últimos documentos leídos para
+  // poder pasar de uno a otro sin volver a procesarlos, pero solo unos pocos (memoria).
+  const [selected, setSelected] = useState(0);
+  const [preview, setPreview] = useState<PreviewState>({ status: 'loading' });
+  const cache = useRef(new Map<string, ParsedDocument>());
+  const selectedIndex = Math.min(selected, files.length - 1);
+  const selectedFile = files[selectedIndex];
+
+  useEffect(() => {
+    // Mientras se convierte no se lee otro documento: se evita competir por CPU y memoria.
+    if (phase === 'running' || !selectedFile) return;
+    const key = fileKey(selectedFile);
+    const cached = cache.current.get(key);
+    if (cached) {
+      cache.current.delete(key);
+      cache.current.set(key, cached); // el más reciente al final
+      setPreview({ status: 'ready', doc: cached, key });
+      return;
+    }
+    const controller = new AbortController();
+    setPreview({ status: 'loading' });
+    void (async () => {
+      try {
+        const { parseDocument } = await import('../lib/convert');
+        const doc = await parseDocument(selectedFile, { signal: controller.signal, maxBytes });
+        if (controller.signal.aborted) return;
+        cache.current.set(key, doc);
+        while (cache.current.size > PREVIEW_CACHE) cache.current.delete(cache.current.keys().next().value as string);
+        setPreview({ status: 'ready', doc, key });
+      } catch (error) {
+        if (!controller.signal.aborted) setPreview({ status: 'error', error: toConversionError(error, 'UNKNOWN') });
+      }
+    })();
+    return () => controller.abort();
+  }, [selectedFile, phase, maxBytes]);
 
   // Si se añaden archivos antes de empezar, la lista se actualiza.
   useEffect(() => {
@@ -79,6 +128,17 @@ export function BatchConverter({ files, maxBytes, settings, onChange, onReset, o
     setPhase('done');
   };
 
+  // Quitar un archivo: la lista vuelve a «preparado» (los estados anteriores ya no encajan).
+  const remove = (index: number) => {
+    if (index < selected) setSelected((n) => Math.max(0, n - 1));
+    if (phase === 'done') {
+      setPhase('setup');
+      setZip(null);
+      setZipError(false);
+    }
+    onRemove(index);
+  };
+
   const done = items.filter((i) => i.status === 'done').length;
   const failed = items.filter((i) => i.status === 'error').length;
   const finished = items.filter((i) => i.status === 'done' || i.status === 'error' || i.status === 'cancelled').length;
@@ -102,21 +162,54 @@ export function BatchConverter({ files, maxBytes, settings, onChange, onReset, o
           </div>
         </div>
 
-        <ul className={`${card} divide-y divide-slate-200 p-0`}>
+        <ul aria-label={b.listLabel} className={`${card} max-h-64 divide-y divide-slate-200 overflow-y-auto p-0`}>
           {items.map((item, index) => (
-            <li key={`${item.name}:${index}`} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
-              <span className="min-w-0 flex-1 break-all font-medium">{item.name}</span>
-              <span
-                className={
-                  item.status === 'error' ? 'font-medium text-red-700' : item.status === 'done' ? 'font-medium text-emerald-700' : 'text-ink-soft'
-                }
+            <li key={`${item.name}:${index}`} className={`flex items-stretch ${index === selectedIndex ? 'bg-brand-soft' : ''}`}>
+              <button
+                type="button"
+                onClick={() => setSelected(index)}
+                aria-current={index === selectedIndex ? 'true' : undefined}
+                className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-left text-sm transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
               >
-                {b.status[item.status]}
-              </span>
-              {item.error && <span className="w-full text-xs text-red-700">{t.errors[item.error.code](item.error.params, numberLocale)}</span>}
+                <span className="min-w-0 flex-1 break-all font-medium">{item.name}</span>
+                <span
+                  className={
+                    item.status === 'error' ? 'font-medium text-red-700' : item.status === 'done' ? 'font-medium text-emerald-700' : 'text-ink-soft'
+                  }
+                >
+                  {b.status[item.status]}
+                </span>
+                {item.error && <span className="w-full text-xs text-red-700">{t.errors[item.error.code](item.error.params, numberLocale)}</span>}
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                disabled={phase === 'running'}
+                aria-label={b.removeFile(item.name)}
+                className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-lg text-ink-soft transition hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
             </li>
           ))}
         </ul>
+
+        {selectedFile && (
+          <div className="space-y-3" aria-live="polite">
+            <h3 className="truncate text-base font-semibold">{b.previewOf(selectedFile.name)}</h3>
+            {preview.status === 'loading' && (
+              <p role="status" className="text-sm text-ink-soft">
+                {phase === 'running' ? b.previewPaused : b.previewLoading}
+              </p>
+            )}
+            {preview.status === 'error' && (
+              <Alert tone="error" title={t.converter.errorTitle}>
+                <p>{t.errors[preview.error.code](preview.error.params, numberLocale)}</p>
+              </Alert>
+            )}
+            {preview.status === 'ready' && <DocumentPreview key={preview.key} doc={preview.doc} settings={settings} idSuffix="-batch" />}
+          </div>
+        )}
       </section>
 
       <aside className="space-y-6" aria-label={t.converter.settingsAria}>

@@ -26,23 +26,14 @@ export const config = {
   adsenseClient: normalizeAdsense(import.meta.env.VITE_ADSENSE_CLIENT),
   adsenseSlot: normalizeSlot(import.meta.env.VITE_ADSENSE_SLOT),
   siteUrl: (import.meta.env.VITE_SITE_URL?.trim() || '').replace(/\/+$/, ''),
-  // Firebase (cuentas y estado Premium). La apiKey de Firebase es pública por diseño:
-  // la seguridad la dan las reglas de Firestore y la verificación en las funciones.
-  firebase: {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim() || '',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim() || '',
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() || '',
-    appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim() || '',
-    functionsRegion: import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION?.trim() || 'europe-west1',
-    /** Solo para pruebas locales con los emuladores de Firebase. */
-    useEmulators: import.meta.env.VITE_FIREBASE_EMULATORS === 'true',
-  },
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.trim() || '',
+  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || '',
   premiumYearlyPriceLabel: import.meta.env.VITE_PREMIUM_YEARLY_PRICE_LABEL?.trim() || '24,99 €/año',
   /** Días de prueba gratuita que se anuncian. Debe coincidir con STRIPE_TRIAL_DAYS del backend. */
   premiumTrialDays: parseTrialDays(import.meta.env.VITE_PREMIUM_TRIAL_DAYS),
   premiumPriceLabel: import.meta.env.VITE_PREMIUM_PRICE_LABEL?.trim() || '2,99 €/mes',
   analyticsEndpoint: import.meta.env.VITE_ANALYTICS_ENDPOINT?.trim() || '',
-  /** Premium y cuentas (Firebase + Stripe). Apagado en el lanzamiento: ver docs/lanzamiento.md. */
+  /** Premium y cuentas (Supabase + Stripe). Apagado en el lanzamiento: ver docs/lanzamiento.md. */
   premiumEnabled: import.meta.env.VITE_PREMIUM_ENABLED === 'true',
   isProduction: import.meta.env.PROD,
   isDev: import.meta.env.DEV,
@@ -64,6 +55,6 @@ export function appUrl(path: string): string {
   return `${origin}${path}`;
 }
 
-export const isFirebaseConfigured = Boolean(config.firebase.apiKey && config.firebase.projectId && config.firebase.appId);
+export const isSupabaseConfigured = Boolean(config.supabaseUrl && config.supabaseAnonKey);
 /** AdSense solo está configurado con cliente Y bloque válidos. */
 export const isAdsenseConfigured = Boolean(config.adsenseClient && config.adsenseSlot);

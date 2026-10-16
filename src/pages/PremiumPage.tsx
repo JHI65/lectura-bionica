@@ -4,8 +4,8 @@ import { Alert } from '../components/Alert';
 import { btnPrimary, card, linkBtn, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { usePremium } from '../hooks/usePremium';
-import { checkoutUrl } from '../lib/auth/actions';
-import { BATCH_MAX_FILES, config, isFirebaseConfigured, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
+import { getSupabase } from '../lib/auth/supabase';
+import { BATCH_MAX_FILES, config, isSupabaseConfigured, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
 import { track } from '../lib/state/analytics';
 
 type Plan = 'monthly' | 'yearly';
@@ -48,12 +48,17 @@ export function PremiumPage() {
   const [error, setError] = useState<string | null>(null);
 
   const startCheckout = async () => {
+    const supabase = getSupabase();
+    if (!supabase) return;
     setBusy(true);
     setError(null);
     try {
-      const url = await checkoutUrl(plan);
+      const { data, error: invokeError } = await supabase.functions.invoke<{ url?: string }>('create-checkout-session', {
+        body: { plan },
+      });
+      if (invokeError || !data?.url) throw invokeError ?? new Error('Sin URL de pago');
       track('premium_checkout_started', { plan });
-      window.location.assign(url);
+      window.location.assign(data.url);
     } catch {
       setError('No se ha podido iniciar el pago. Inténtalo de nuevo más tarde.');
       setBusy(false);
@@ -123,7 +128,7 @@ export function PremiumPage() {
         {premium.status === 'unavailable' && (
           <Alert tone="info" title="Suscripción no disponible todavía">
             <p>
-              Premium aún no está activo en este entorno. {!config.isProduction && 'En desarrollo, configura Firebase y Stripe siguiendo el README; no se simulan pagos reales.'}
+              Premium aún no está activo en este entorno. {!config.isProduction && 'En desarrollo, configura Supabase y Stripe siguiendo el README; no se simulan pagos reales.'}
             </p>
           </Alert>
         )}
@@ -140,7 +145,7 @@ export function PremiumPage() {
         {premium.status === 'free' && (
           <div className="space-y-3">
             {error && <Alert tone="error">{error}</Alert>}
-            <button type="button" className={btnPrimary} onClick={startCheckout} disabled={busy || !isFirebaseConfigured}>
+            <button type="button" className={btnPrimary} onClick={startCheckout} disabled={busy || !isSupabaseConfigured}>
               {busy ? 'Redirigiendo al pago…' : trial > 0 ? `Empezar prueba de ${trial} días` : 'Suscribirme a Premium'}
             </button>
             <p className="text-xs text-ink-soft">

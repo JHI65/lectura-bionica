@@ -1,10 +1,11 @@
-// Estado Premium compartido en memoria. Viene de Firestore (escrito por el webhook) y
+// Estado Premium compartido en memoria. Viene del backend (entitlement) y
 // nunca se persiste en el navegador ni se cambia desde el cliente.
 //
-// El SDK de Firebase se importa de forma diferida: sin configuración no se descarga.
+// supabase-js se importa de forma diferida: sin configuración no se descarga.
 import { useSyncExternalStore } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import type { Entitlement } from '../lib/auth/entitlement';
-import { isFirebaseConfigured } from '../lib/state/config';
+import { isSupabaseConfigured } from '../lib/state/config';
 
 export type PremiumStatus = 'unavailable' | 'anonymous' | 'loading' | 'free' | 'premium' | 'error';
 
@@ -15,54 +16,63 @@ export interface PremiumState {
 }
 
 const UNAVAILABLE: PremiumState = { status: 'unavailable', email: null, entitlement: null };
-let state: PremiumState = isFirebaseConfigured ? { status: 'loading', email: null, entitlement: null } : UNAVAILABLE;
+let state: PremiumState = isSupabaseConfigured ? { status: 'loading', email: null, entitlement: null } : UNAVAILABLE;
 const listeners = new Set<() => void>();
 let started = false;
-let stopSnapshot: (() => void) | null = null;
+let requestId = 0;
 
 function emit(next: PremiumState) {
   state = next;
   listeners.forEach((l) => l());
 }
 
-// Sesión → escucha en vivo del documento subscriptions/{uid}. Así, al volver de Stripe
-// el cambio llega solo, sin consultas periódicas. Si falla la lectura, no se ocultan anuncios.
-async function start() {
-  if (started || !isFirebaseConfigured) return;
-  started = true;
-  const { getFirebase } = await import('../lib/auth/firebase');
-  const client = await getFirebase();
-  if (!client) return;
-  const [{ onAuthStateChanged }, { doc, onSnapshot }, { entitlementFromDoc }] = await Promise.all([
-    import('firebase/auth'),
-    import('firebase/firestore'),
-    import('../lib/auth/entitlement'),
-  ]);
+async function client() {
+  if (!isSupabaseConfigured) return null;
+  const { getSupabase } = await import('../lib/auth/supabase');
+  return getSupabase();
+}
 
-  onAuthStateChanged(client.auth, (user) => {
-    stopSnapshot?.();
-    stopSnapshot = null;
-    if (!user) {
-      emit({ status: 'anonymous', email: null, entitlement: null });
-      return;
-    }
-    const email = user.email ?? null;
-    emit({ status: 'loading', email, entitlement: null });
-    stopSnapshot = onSnapshot(
-      doc(client.db, 'subscriptions', user.uid),
-      (snapshot) => {
-        const entitlement = entitlementFromDoc(snapshot.data());
-        emit({ status: entitlement.premium ? 'premium' : 'free', email, entitlement });
-      },
-      () => emit({ status: 'error', email, entitlement: null }),
-    );
+async function refreshFor(session: Session | null) {
+  const current = ++requestId;
+  if (!session) {
+    emit({ status: 'anonymous', email: null, entitlement: null });
+    return;
+  }
+  emit({ ...state, status: 'loading', email: session.user.email ?? null });
+  try {
+    const { fetchEntitlement } = await import('../lib/auth/entitlement');
+    const entitlement = await fetchEntitlement();
+    if (current !== requestId) return;
+    emit({ status: entitlement?.premium ? 'premium' : 'free', email: session.user.email ?? null, entitlement });
+  } catch {
+    if (current !== requestId) return;
+    // Ante la duda, no se ocultan anuncios: solo el backend puede confirmar Premium.
+    emit({ status: 'error', email: session.user.email ?? null, entitlement: null });
+  }
+}
+
+function start() {
+  if (started || !isSupabaseConfigured) return;
+  started = true;
+  void client().then((supabase) => {
+    if (!supabase) return;
+    supabase.auth.onAuthStateChange((_event, session) => {
+      void refreshFor(session);
+    });
+    void supabase.auth.getSession().then(({ data }) => refreshFor(data.session));
   });
 }
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  void start();
+  start();
   return () => listeners.delete(listener);
+}
+
+export function refreshPremium(): void {
+  void client().then((supabase) => {
+    if (supabase) void supabase.auth.getSession().then(({ data }) => refreshFor(data.session));
+  });
 }
 
 export function usePremium(): PremiumState {

@@ -4,8 +4,8 @@ import { Alert } from '../components/Alert';
 import { btnPrimary, card, linkBtn, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
 import { usePremium } from '../hooks/usePremium';
-import { getSupabase } from '../lib/auth/supabase';
-import { BATCH_MAX_FILES, config, isSupabaseConfigured, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
+import { checkoutUrl } from '../lib/auth/actions';
+import { BATCH_MAX_FILES, config, isFirebaseConfigured, PREMIUM_MAX_FILE_MB } from '../lib/state/config';
 import { track } from '../lib/state/analytics';
 
 type Plan = 'monthly' | 'yearly';
@@ -48,17 +48,12 @@ export function PremiumPage() {
   const [error, setError] = useState<string | null>(null);
 
   const startCheckout = async () => {
-    const supabase = getSupabase();
-    if (!supabase) return;
     setBusy(true);
     setError(null);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke<{ url?: string }>('create-checkout-session', {
-        body: { plan },
-      });
-      if (invokeError || !data?.url) throw invokeError ?? new Error('Sin URL de pago');
+      const url = await checkoutUrl(plan);
       track('premium_checkout_started', { plan });
-      window.location.assign(data.url);
+      window.location.assign(url);
     } catch {
       setError('No se ha podido iniciar el pago. Inténtalo de nuevo más tarde.');
       setBusy(false);
@@ -69,7 +64,8 @@ export function PremiumPage() {
   const yearly = priceNumber(config.premiumYearlyPriceLabel);
   const savingPercent = monthly && yearly && yearly < monthly * 12 ? Math.round((1 - yearly / (monthly * 12)) * 100) : null;
   const perMonth = yearly ? euro(yearly / 12) : null;
-  const trial = config.premiumTrialDays;
+  // La prueba gratuita solo es para la primera suscripción: el servidor lo hace cumplir.
+  const trial = premium.entitlement?.hadSubscription ? 0 : config.premiumTrialDays;
   const selectedLabel = plan === 'yearly' ? config.premiumYearlyPriceLabel : config.premiumPriceLabel;
 
   const planClass = (value: Plan) =>
@@ -127,7 +123,7 @@ export function PremiumPage() {
         {premium.status === 'unavailable' && (
           <Alert tone="info" title="Suscripción no disponible todavía">
             <p>
-              Premium aún no está activo en este entorno. {!config.isProduction && 'En desarrollo, configura Supabase y Stripe siguiendo el README; no se simulan pagos reales.'}
+              Premium aún no está activo en este entorno. {!config.isProduction && 'En desarrollo, configura Firebase y Stripe siguiendo el README; no se simulan pagos reales.'}
             </p>
           </Alert>
         )}
@@ -144,7 +140,7 @@ export function PremiumPage() {
         {premium.status === 'free' && (
           <div className="space-y-3">
             {error && <Alert tone="error">{error}</Alert>}
-            <button type="button" className={btnPrimary} onClick={startCheckout} disabled={busy || !isSupabaseConfigured}>
+            <button type="button" className={btnPrimary} onClick={startCheckout} disabled={busy || !isFirebaseConfigured}>
               {busy ? 'Redirigiendo al pago…' : trial > 0 ? `Empezar prueba de ${trial} días` : 'Suscribirme a Premium'}
             </button>
             <p className="text-xs text-ink-soft">

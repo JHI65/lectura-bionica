@@ -9,7 +9,7 @@ Aplicación web para convertir EPUB y PDF con texto a lectura biónica personali
 - React 18 + TypeScript + Vite 6 + Tailwind CSS 3 + React Router 6
 - **EPUB:** epub.js (metadatos, spine, índice, recursos) + JSZip (reescritura del paquete al exportar)
 - **PDF:** pdf.js (extracción de texto e imágenes) + pdf-lib (generación del PDF transformado)
-- **Cuenta y Premium (desactivados en el lanzamiento, `VITE_PREMIUM_ENABLED=false`):** Supabase (auth por enlace de correo, tabla de suscripciones con RLS) y Stripe Billing (Checkout, Portal, webhook firmado) mediante Edge Functions
+- **Cuenta y Premium (desactivados en el lanzamiento, `VITE_PREMIUM_ENABLED=false`):** Firebase (Authentication con Google o enlace por correo, Firestore con reglas estrictas) y Stripe Billing (Checkout, Portal, webhook firmado) mediante Cloud Functions
 - **Publicidad:** Google AdSense, cargado solo con configuración válida y consentimiento
 
 ## Ejecutar en local
@@ -41,9 +41,10 @@ src/lib/
   pdf/         layout de líneas/párrafos, parse (pdf.js), export (pdf-lib)
   convert.ts   orquestador: validar → extraer → exportar
   state/       preferencias locales, consentimiento, analítica, política de anuncios
-  auth/        cliente Supabase y consulta de entitlement (siempre al backend)
+  auth/        cliente Firebase (carga diferida), acciones de cuenta y lectura de la suscripción
 src/components/, src/pages/, src/hooks/  interfaz
-supabase/      migración SQL, config y Edge Functions (Stripe + entitlement)
+functions/     Cloud Functions (Stripe: checkout, portal y webhook) y reglas de suscripción
+firestore.rules, firebase.json   reglas de Firestore y emuladores
 scripts/seo-build.mjs   post-build: HTML por ruta, canonical, sitemap, robots
 ```
 
@@ -90,7 +91,7 @@ Para añadir una guía: añade la ruta en `routes.json`, su contenido en cada id
 
 ## Variables de entorno
 
-Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
+Todas son públicas (`VITE_*`). Los secretos van solo en Firebase (ver abajo). La `apiKey` de Firebase es pública por diseño.
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
@@ -98,7 +99,8 @@ Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
 | `VITE_MAX_FILE_MB` | No | Tamaño máximo de archivo. Por defecto 20 |
 | `VITE_ADSENSE_CLIENT` | Para anuncios | Formato `ca-pub-` + 16 dígitos. Solo tras aprobación de AdSense |
 | `VITE_ADSENSE_SLOT` | Para anuncios | Identificador del bloque de anuncios (solo dígitos) |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Para cuentas | Proyecto de Supabase |
+| `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID` | Para cuentas | App web de Firebase (Project settings) |
+| `VITE_FIREBASE_FUNCTIONS_REGION` | No | Región de las funciones. Por defecto `europe-west1` |
 | `VITE_PREMIUM_ENABLED` | No | `true` activa Premium, cuentas y sus páginas. Por defecto apagado |
 | `VITE_BASE` | No | Ruta base si se sirve bajo un subdirectorio (p. ej. `/lectura-bionica/`). `npm run deploy:pages` la define |
 | `VITE_PREMIUM_PRICE_LABEL` | No | Precio mostrado. Por defecto `2,99 €/mes` |
@@ -106,42 +108,32 @@ Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
 | `VITE_PREMIUM_TRIAL_DAYS` | No | Días de prueba anunciados (0 = sin prueba). Por defecto 7; igual que `STRIPE_TRIAL_DAYS` |
 | `VITE_ANALYTICS_ENDPOINT` | No | Endpoint propio de analítica |
 
-Variables del servidor (Supabase → Edge Functions → Secrets):
+Parámetros de las funciones (`functions/.env.<id-del-proyecto>`, ver `functions/.env.example`) y secretos (`firebase functions:secrets:set`):
 
-| Variable | Descripción |
-|---|---|
-| `SITE_URL` | Igual que `VITE_SITE_URL`. Define el CORS y las URLs de retorno (nunca se aceptan desde el cliente) |
-| `STRIPE_SECRET_KEY` | Clave secreta de Stripe (modo test primero) |
-| `STRIPE_WEBHOOK_SECRET` | Secreto de firma del endpoint de webhook |
-| `STRIPE_PRICE_ID` | Price mensual de 2,99 € creado en Stripe |
-| `STRIPE_PRICE_ID_YEARLY` | Price anual de 24,99 € creado en Stripe |
-| `STRIPE_TRIAL_DAYS` | Días de prueba en la primera suscripción (por defecto 7; `0` la desactiva) |
+| Variable | Tipo | Descripción |
+|---|---|---|
+| `SITE_URL` | Parámetro | Igual que `VITE_SITE_URL`. Fija las URLs de retorno de Stripe (nunca se aceptan desde el cliente) |
+| `STRIPE_PRICE_ID` | Parámetro | Price mensual de 2,99 € creado en Stripe |
+| `STRIPE_PRICE_ID_YEARLY` | Parámetro | Price anual de 24,99 € creado en Stripe |
+| `STRIPE_TRIAL_DAYS` | Parámetro | Días de prueba en la primera suscripción (por defecto 7; `0` la desactiva) |
+| `STRIPE_SECRET_KEY` | Secreto | Clave secreta de Stripe (modo test primero) |
+| `STRIPE_WEBHOOK_SECRET` | Secreto | Secreto de firma del endpoint de webhook |
 
-`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase automáticamente.
+Los pasos completos, en orden, están en [`docs/activar-premium.md`](docs/activar-premium.md).
 
-## Configurar Supabase y Stripe
-
-1. **Base de datos.** En Supabase, ejecuta `supabase/migrations/0001_subscriptions.sql`. Activa el proveedor de email (magic link) en *Authentication*.
-2. **Funciones.** `supabase functions deploy entitlement create-checkout-session create-portal-session stripe-webhook`. `supabase/config.toml` desactiva la verificación JWT solo para el webhook.
-3. **Secretos.** `supabase secrets set SITE_URL=... STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... STRIPE_PRICE_ID=... STRIPE_PRICE_ID_YEARLY=... STRIPE_TRIAL_DAYS=7`
-4. **Stripe.**
-   - Crea un producto con dos precios recurrentes en EUR: mensual de 2,99 € y anual de 24,99 €.
-   - En *Webhooks*, apunta a `https://<proyecto>.supabase.co/functions/v1/stripe-webhook` y escucha: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
-   - Activa el *Customer Portal* (cambio de método de pago, facturas y cancelación) y permite el cambio entre el plan mensual y el anual.
-5. **Frontend.** Rellena `.env.production` con las variables `VITE_*`. Despliega `dist/` en un hosting estático. El fichero `public/_redirects` sirve para Netlify o Cloudflare Pages; en otros hosts configura la reescritura de rutas a `index.html`.
+**Cómo se decide Premium.** Solo el webhook de Stripe (verifica la firma) escribe `subscriptions/{uid}` en Firestore, con el Admin SDK. Las reglas (`firestore.rules`) permiten a cada usuario leer su documento y a nadie escribir. El navegador escucha ese documento en vivo, así que al volver de Stripe la cuenta pasa a Premium sin recargar.
 
 Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` no haya pasado. `past_due` (pago fallido) **no** da acceso; la cancelación al final del periodo mantiene el acceso hasta esa fecha.
 
-**Modo desarrollo sin Stripe:** si Supabase no está configurado, la página Premium indica que no está disponible. No se simulan pagos.
+**Modo desarrollo sin Stripe:** si Firebase no está configurado, la página Premium indica que no está disponible. No se simulan pagos.
 
 ## Integraciones pendientes (requieren credenciales o aprobación externa)
 
 | Integración | Estado | Qué falta |
 |---|---|---|
 | Google AdSense | Interfaz lista | Aprobación del sitio, `VITE_ADSENSE_CLIENT`, `VITE_ADSENSE_SLOT`, `public/ads.txt` real. En UE hace falta un CMP certificado por Google (IAB TCF); el banner actual es una base, no ese CMP |
-| Supabase | Código listo | Proyecto, migración, secretos y despliegue de funciones. **No verificado contra un proyecto real** |
+| Firebase | Código listo | Proyecto (plan Blaze para Cloud Functions), reglas, secretos y despliegue de funciones. Probado con los emuladores y un Stripe simulado; **no verificado contra un proyecto real** |
 | Stripe Billing | Código listo | Cuenta, producto y precio, webhook y Customer Portal. **No verificado con eventos reales** |
-| Plan anual | No publicado | Intencionadamente fuera; requiere su propio Price en Stripe |
 | Datos del titular | Pendiente | Sustituir los marcadores `[COMPLETAR]` de `src/content/legal.ts` |
 | Cumplimiento RGPD / LSSI | No declarado | Revisión jurídica de textos, bases legales, encargos de tratamiento y transferencias |
 
@@ -170,4 +162,4 @@ Estado Premium: `active` y `trialing` dan acceso mientras `current_period_end` n
 - Límites, cancelación, progreso y errores de memoria.
 - Idiomas: mismas claves en es y en, mensajes para cada código de error y aviso, sin caracteres del español en la versión inglesa, pares hreflang recíprocos y renderizado de cada ruta en ambos idiomas.
 
-Las pruebas de navegador real (Chrome, escritorio y móvil, accesibilidad con axe-core, consentimiento, Pages) y sus resultados están en `docs/lanzamiento.md`. Pendiente: pruebas de las Edge Functions con la CLI de Supabase y eventos de prueba de Stripe, y dispositivos móviles reales.
+Las pruebas de navegador real (Chrome, escritorio y móvil, accesibilidad con axe-core, consentimiento, Pages) y sus resultados están en `docs/lanzamiento.md`. Pendiente: pruebas contra un proyecto real de Firebase y eventos reales de Stripe (el flujo se probó con los emuladores y un Stripe simulado), el acceso con la ventana de Google, y dispositivos móviles reales.

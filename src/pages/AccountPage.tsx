@@ -3,9 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Alert } from '../components/Alert';
 import { btnPrimary, btnSecondary, card, sectionTitle } from '../components/ui';
 import { useDocumentMeta } from '../hooks/useDocumentMeta';
-import { refreshPremium, usePremium } from '../hooks/usePremium';
-import { getSupabase } from '../lib/auth/supabase';
-import { appUrl, config } from '../lib/state/config';
+import { usePremium } from '../hooks/usePremium';
+import { completeEmailLink, portalUrl, sendEmailLink, signInWithGoogle, signOutUser } from '../lib/auth/actions';
+import { config, isFirebaseConfigured } from '../lib/state/config';
 
 const STATUS_TEXT: Record<string, string> = {
   active: 'Activa',
@@ -22,52 +22,59 @@ export function AccountPage() {
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [needsEmail, setNeedsEmail] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const checkoutReturn = params.get('checkout') === 'success';
 
-  // Tras volver de Stripe no confiamos en la redirección: se vuelve a consultar el backend.
+  // Si se llega desde el enlace del correo, se completa el acceso.
   useEffect(() => {
-    if (!checkoutReturn) return;
-    refreshPremium();
-    const timer = window.setTimeout(refreshPremium, 4000);
-    return () => window.clearTimeout(timer);
-  }, [checkoutReturn]);
+    if (!isFirebaseConfigured) return;
+    completeEmailLink()
+      .then((result) => setNeedsEmail(result === 'needs-email'))
+      .catch(() => setError('El enlace de acceso no es válido o ha caducado. Pide uno nuevo.'));
+  }, []);
 
   const sendLink = async (event: FormEvent) => {
     event.preventDefault();
-    const supabase = getSupabase();
-    if (!supabase) return;
-    setBusy(true);
-    setError(null);
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: appUrl('/cuenta') },
-    });
-    setBusy(false);
-    if (authError) setError('No se ha podido enviar el enlace. Revisa el correo e inténtalo de nuevo.');
-    else setSent(true);
-  };
-
-  const openBilling = async (path: 'create-portal-session' | 'create-checkout-session') => {
-    const supabase = getSupabase();
-    if (!supabase) return;
     setBusy(true);
     setError(null);
     try {
-      const returnUrl = appUrl('/cuenta');
-      const { data, error: invokeError } = await supabase.functions.invoke<{ url?: string }>(path, { body: { returnUrl } });
-      if (invokeError || !data?.url) throw invokeError ?? new Error('Sin URL');
-      window.location.assign(data.url);
+      if (needsEmail) {
+        await completeEmailLink(email);
+        setNeedsEmail(false);
+      } else {
+        await sendEmailLink(email);
+        setSent(true);
+      }
+    } catch {
+      setError(needsEmail ? 'No se ha podido completar el acceso. Revisa el correo o pide un enlace nuevo.' : 'No se ha podido enviar el enlace. Revisa el correo e inténtalo de nuevo.');
+    }
+    setBusy(false);
+  };
+
+  const googleSignIn = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      // Cerrar la ventana de Google no es un error que mostrar.
+      const code = (e as { code?: string }).code;
+      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') setError('No se ha podido entrar con Google. Inténtalo de nuevo.');
+    }
+    setBusy(false);
+  };
+
+  const openBilling = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      window.location.assign(await portalUrl());
     } catch {
       setError('No se ha podido abrir la facturación. Inténtalo de nuevo más tarde.');
       setBusy(false);
     }
-  };
-
-  const signOut = async () => {
-    await getSupabase()?.auth.signOut();
-    refreshPremium();
   };
 
   if (premium.status === 'unavailable') {
@@ -78,7 +85,7 @@ export function AccountPage() {
           <Alert tone="info" title="Cuentas no disponibles en este entorno">
             <p>
               La cuenta sirve para gestionar Premium. Mientras no esté configurada, la conversión funciona sin registro.
-              {!config.isProduction && ' En desarrollo, configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY (ver README).'}
+              {!config.isProduction && ' En desarrollo, configura las variables VITE_FIREBASE_* (ver README).'}
             </p>
           </Alert>
         </div>
@@ -100,30 +107,40 @@ export function AccountPage() {
         <h1 className={sectionTitle}>Entrar</h1>
         {sent ? (
           <Alert tone="success" title="Revisa tu correo">
-            <p>Te hemos enviado un enlace para entrar. Puede tardar unos minutos.</p>
+            <p>Te hemos enviado un enlace para entrar. Puede tardar unos minutos; mira también la carpeta de spam. Ábrelo en este mismo navegador.</p>
           </Alert>
         ) : (
-          <form onSubmit={sendLink} className={`${card} space-y-4`}>
-            <p className="text-sm leading-relaxed text-ink-soft">
-              Te enviaremos un enlace de acceso a tu correo. No necesitas contraseña.
-            </p>
-            <label className="block text-sm font-medium" htmlFor="email">
-              Correo electrónico
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-4 text-base"
-            />
-            {error && <Alert tone="error">{error}</Alert>}
-            <button type="submit" className={`${btnPrimary} w-full`} disabled={busy}>
-              {busy ? 'Enviando…' : 'Enviar enlace de acceso'}
-            </button>
-          </form>
+          <div className={`${card} space-y-5`}>
+            {!needsEmail && (
+              <>
+                <button type="button" className={`${btnSecondary} w-full`} onClick={googleSignIn} disabled={busy}>
+                  Continuar con Google
+                </button>
+                <p className="text-center text-xs text-ink-soft">o con un enlace a tu correo, sin contraseña</p>
+              </>
+            )}
+            <form onSubmit={sendLink} className="space-y-4">
+              {needsEmail && (
+                <p className="text-sm leading-relaxed text-ink-soft">Para completar el acceso, confirma el correo al que te enviamos el enlace.</p>
+              )}
+              <label className="block text-sm font-medium" htmlFor="email">
+                Correo electrónico
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-4 text-base"
+              />
+              {error && <Alert tone="error">{error}</Alert>}
+              <button type="submit" className={`${btnPrimary} w-full`} disabled={busy}>
+                {busy ? 'Enviando…' : needsEmail ? 'Completar acceso' : 'Enviar enlace de acceso'}
+              </button>
+            </form>
+          </div>
         )}
       </div>
     );
@@ -171,7 +188,7 @@ export function AccountPage() {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           {premium.status === 'premium' || entitlement?.status ? (
-            <button type="button" className={btnSecondary} onClick={() => openBilling('create-portal-session')} disabled={busy}>
+            <button type="button" className={btnSecondary} onClick={openBilling} disabled={busy}>
               Gestionar facturación y cancelación
             </button>
           ) : (
@@ -179,7 +196,7 @@ export function AccountPage() {
               Ver planes de Premium
             </Link>
           )}
-          <button type="button" className={btnSecondary} onClick={signOut}>
+          <button type="button" className={btnSecondary} onClick={() => void signOutUser()}>
             Cerrar sesión
           </button>
         </div>

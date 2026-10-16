@@ -104,7 +104,7 @@ describe('contenido en inglés', () => {
 
   it('las guías en inglés no mencionan Premium, cuentas ni cobros que no existen en esa versión', () => {
     const text = JSON.stringify([GUIDES.en, LEGAL_DOCS.en]);
-    expect(text).not.toMatch(/premium|stripe|supabase|subscription/i);
+    expect(text).not.toMatch(/premium|stripe|supabase|firebase|subscription/i);
   });
 
   it('el aviso de marca figura en la versión inglesa', () => {

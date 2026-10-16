@@ -8,8 +8,12 @@ interface ImportMetaEnv {
   readonly VITE_PREMIUM_ENABLED?: string;
   readonly VITE_MAX_FILE_MB?: string;
   readonly VITE_ADSENSE_CLIENT?: string;
-  readonly VITE_SUPABASE_URL?: string;
-  readonly VITE_SUPABASE_ANON_KEY?: string;
+  readonly VITE_FIREBASE_API_KEY?: string;
+  readonly VITE_FIREBASE_AUTH_DOMAIN?: string;
+  readonly VITE_FIREBASE_PROJECT_ID?: string;
+  readonly VITE_FIREBASE_APP_ID?: string;
+  readonly VITE_FIREBASE_FUNCTIONS_REGION?: string;
+  readonly VITE_FIREBASE_EMULATORS?: string;
   readonly VITE_PREMIUM_PRICE_LABEL?: string;
   readonly VITE_ANALYTICS_ENDPOINT?: string;
 }

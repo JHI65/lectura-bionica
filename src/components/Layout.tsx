@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CookieBanner } from './CookieBanner';
 import { openCookiePreferences } from '../lib/state/consent';
 import { usePremium } from '../hooks/usePremium';
-import { config, isSupabaseConfigured } from '../lib/state/config';
+import { config, isFirebaseConfigured } from '../lib/state/config';
 import { useConsent } from '../hooks/useConsent';
 import { acquisitionSource, registerVisit, track } from '../lib/state/analytics';
 import { alternatesFor, findByPath, pathFor } from '../content/routes';
@@ -96,7 +96,7 @@ export function Layout() {
                 {t.nav.premium}
               </NavLink>
             )}
-            {showPremium && isSupabaseConfigured && (
+            {showPremium && isFirebaseConfigured && (
               <NavLink to={pathFor('account', 'es')} className={navClass}>
                 {premium.status === 'premium' ? t.nav.accountPremium : t.nav.account}
               </NavLink>

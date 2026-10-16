@@ -3,7 +3,7 @@
 // están en CONTROLLER; los campos que falten se marcan [COMPLETAR].
 //
 // Los textos describen lo que la web hace de verdad: mientras Premium esté
-// desactivado (VITE_PREMIUM_ENABLED), no se mencionan cuentas, Supabase ni Stripe.
+// desactivado (VITE_PREMIUM_ENABLED), no se mencionan cuentas, Firebase ni Stripe.
 // Premium solo existe en español, así que la versión inglesa nunca lo menciona.
 
 import { config } from '../lib/state/config';
@@ -60,7 +60,7 @@ const ES: LegalDocument[] = [
           'Ajustes de lectura: se guardan en tu navegador (localStorage) para recordar tu configuración. No salen de tu dispositivo.',
           'Preferencias de cookies: se guardan en tu navegador para no volver a preguntarte.',
           ...when(PREMIUM, [
-            'Cuenta (solo si te registras para Premium): correo electrónico y estado de tu suscripción, gestionados con Supabase.',
+            'Cuenta (solo si te registras para Premium): correo electrónico, identificador de cuenta y estado de tu suscripción, gestionados con Google Firebase (Authentication y Firestore). Si entras con Google, recibimos tu correo y nombre de perfil.',
             'Pagos (solo Premium): los gestiona Stripe. Nosotros no almacenamos datos de tarjeta; recibimos el estado de la suscripción.',
           ]),
           'Analítica (solo con tu consentimiento): eventos anónimos como visitas, inicio y fin de conversiones, tipo de formato y la fuente de la visita (solo el dominio de origen). Nunca se envían contenido, nombres de archivo ni texto extraído.',
@@ -80,7 +80,7 @@ const ES: LegalDocument[] = [
         paragraphs: ['Servicios que pueden intervenir según la función que uses:'],
         list: [
           ...when(PREMIUM, [
-            'Supabase: autenticación y base de datos de suscripciones.',
+            'Google Firebase: autenticación (con enlace por correo o con tu cuenta de Google) y base de datos de suscripciones. Puede implicar transferencias a Estados Unidos con las garantías de Google [REVISAR].',
             'Stripe: cobro de la suscripción y portal de facturación.',
           ]),
           'Google AdSense: anuncios, solo con consentimiento. Consulta la política de Google.',
@@ -115,7 +115,7 @@ const ES: LegalDocument[] = [
           'lb:reading-settings:v1: tus ajustes de lectura (necesario).',
           'lb:consent:v1: tu elección sobre cookies opcionales (necesario).',
           'lb:visits: un contador local de visitas para detectar visitas recurrentes (solo si aceptas analítica).',
-          ...when(PREMIUM, ['Sesión de Supabase: mantiene tu sesión si inicias sesión para Premium (necesario para esa función).']),
+          ...when(PREMIUM, ['Sesión de Firebase (almacenamiento del navegador): mantiene tu sesión si inicias sesión para Premium (necesario para esa función). Al pedir un enlace de acceso por correo se guarda temporalmente tu correo en este navegador (lb:emailForSignIn) para completarlo.']),
         ],
       },
       {

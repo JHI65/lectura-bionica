@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!--
       Política de seguridad de contenido. Permite solo lo que usa la app:
-      scripts propios, AdSense (solo si está configurado), Supabase y el iframe de vista previa.
+      scripts propios, AdSense (solo si está configurado) y el iframe de vista previa.
+      Con Premium activado, vite.config.ts añade los orígenes de Firebase (cuentas) y Stripe.
       frame-ancestors no puede declararse en meta: configúrelo en el servidor si lo aloja.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://pagead2.googlesyndication.com; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com"
+      content="default-src 'self'; script-src 'self' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://pagead2.googlesyndication.com; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com https://billing.stripe.com"
     />
     <meta name="description" content="Convierte tus EPUB y PDF con texto a lectura biónica personalizable. Se procesan en tu navegador, sin registro." />
     <!-- Verificación de propiedad de AdSense: no carga nada ni usa cookies. -->

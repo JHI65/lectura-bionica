@@ -5,6 +5,16 @@ import { adminClient, authenticatedUser, stripeClient } from '../_shared/clients
 import { isPremium, type SubscriptionRow } from '../_shared/subscription.ts';
 
 Deno.serve(async (req) => {
+  try {
+    return await handle(req);
+  } catch (error) {
+    // El detalle va al log del servidor; al cliente solo un código.
+    console.error('create-checkout-session', error instanceof Error ? error.message : error);
+    return json({ error: 'checkout_failed' }, 502);
+  }
+});
+
+async function handle(req: Request): Promise<Response> {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -60,4 +70,4 @@ Deno.serve(async (req) => {
   });
 
   return json({ url: session.url });
-});
+}

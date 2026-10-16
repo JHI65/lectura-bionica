@@ -2,7 +2,7 @@
 
 Premium está programado y desplegado, pero apagado. Esta lista lleva de cero a cobrar. Hazla en orden y **prueba todo en modo test de Stripe antes de pasar a real**.
 
-Qué incluye Premium: sin anuncios, archivos de hasta 100 MB, conversión por lotes (20 archivos, ZIP), plan mensual (2,99 €) y anual (24,99 €) con 7 días de prueba en la primera suscripción.
+Qué incluye Premium: sin anuncios, archivos de hasta 300 MB, conversión por lotes (20 archivos, ZIP), plan mensual (2,99 €) y anual (24,99 €) con 7 días de prueba en la primera suscripción.
 
 Arquitectura: la web (GitHub Pages) habla con **Supabase** (cuentas con Google o enlace por correo, y la tabla `subscriptions`). Cuatro **Edge Functions** hablan con Stripe: `create-checkout-session`, `create-portal-session`, `entitlement` y `stripe-webhook`. Solo el webhook escribe en la tabla.
 
@@ -74,11 +74,11 @@ VITE_PREMIUM_TRIAL_DAYS=7
 
 - [ ] `npm run dev`, abrir `/cuenta` y probar **Continuar con Google** y el **enlace por correo**.
 - [ ] Suscribirse al plan **anual** con la tarjeta de prueba `4242 4242 4242 4242`: debe mostrar la prueba de 7 días y, al volver, pasar a Premium (puede tardar unos segundos).
-- [ ] Con Premium: sin anuncios, etiqueta de 100 MB, y carga de varios archivos (lote + ZIP).
+- [ ] Con Premium: sin anuncios, etiqueta de 300 MB, y carga de varios archivos (lote + ZIP).
 - [ ] «Gestionar facturación»: cambiar a mensual, cancelar y comprobar que sigue Premium hasta el fin del periodo.
 - [ ] Segunda suscripción del mismo usuario tras cancelar: **no** debe ofrecer prueba de nuevo.
 - [ ] Pago fallido: tarjeta `4000 0000 0000 0341` → Premium debe desactivarse (`past_due` no da acceso).
-- [ ] Un usuario sin suscripción sigue viendo anuncios y el límite de 20 MB.
+- [ ] Un usuario sin suscripción sigue viendo anuncios y el límite de 50 MB.
 - [ ] En Stripe, ningún evento del webhook debe figurar como fallido; en Supabase, revisar los logs de las funciones.
 
 ## 7. Textos legales (antes de cobrar)
@@ -108,6 +108,6 @@ Probado en Chrome real con Supabase y sus funciones **simulados**: el botón de 
 ## Cosas que conviene saber
 
 - **Plan gratuito de Supabase:** hasta donde recuerdo, pausa los proyectos sin actividad durante una semana, y un proyecto pausado deja a los usuarios sin poder entrar. Con visitas reales no debería ocurrir; compruébalo en su documentación.
-- Las ventajas (100 MB, lotes, sin anuncios) se controlan en el navegador: quien manipule el código podría saltárselas. Es aceptable porque los archivos no pasan por ningún servidor. El cobro y el estado de la suscripción sí se deciden en el servidor.
+- Las ventajas (300 MB, lotes, sin anuncios) se controlan en el navegador: quien manipule el código podría saltárselas. Es aceptable porque los archivos no pasan por ningún servidor. El cobro y el estado de la suscripción sí se deciden en el servidor.
 - Premium solo existe en español.
 - Lotes: probado hasta 4 archivos y un PDF de 75 MB; no se ha medido memoria con 20 archivos grandes ni en móviles reales.

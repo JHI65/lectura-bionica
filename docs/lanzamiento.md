@@ -14,7 +14,7 @@ npm run deploy:pages              # compila con la base de Pages y sube a gh-pag
 
 Después, en GitHub → Settings → Pages: la fuente debe ser la rama `gh-pages`, carpeta `/`. Si el sitio no se actualiza, `gh api -X POST repos/JHI65/lectura-bionica/pages/builds` fuerza un build.
 
-## Límite de tamaño (20 MB)
+## Límite de tamaño (50 MB gratis, 300 MB con Premium)
 
 Un único valor: `DEFAULT_MAX_FILE_MB` en `src/lib/state/config.ts`, o `VITE_MAX_FILE_MB` en el build. Se valida antes de leer el archivo, y el mensaje indica el peso del archivo y el máximo.
 
@@ -26,7 +26,7 @@ Medido en Chrome de escritorio (headless, Apple Silicon), build de producción:
 | PDF 17 MB con imágenes (3 figuras) | 0,4 s | 0,2 s | no medida | 4,6 MB, con las 3 imágenes |
 | EPUB 16 MB, 250 capítulos | 0,8 s | 2,1 s | 32 MB | 15,8 MB |
 
-Ninguna tarea superó 50 ms de bloqueo del hilo principal. **No medido:** móviles reales ni equipos con poca RAM; el límite de 20 MB es una cifra conservadora, no un valor probado en esos dispositivos. Se ajusta con una variable.
+Ninguna tarea superó 50 ms de bloqueo del hilo principal. **No medido:** móviles reales ni equipos con poca RAM; el límite de 50 MB es una cifra que se midió solo en escritorio, no un valor probado en esos dispositivos. Se ajusta con una variable.
 
 Antes de la corrección de hoy, el PDF de 400 páginas llegaba a **677 MB** y 10,6 MB de salida: pdf-lib creaba un objeto por operación de dibujo. Ahora se escribe el contenido de página directamente y comprimido.
 

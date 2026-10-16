@@ -17,7 +17,7 @@ const dist = process.env.DIST_DIR ? resolve(process.env.DIST_DIR) : join(root, '
 const env = loadEnv('production', root, 'VITE_');
 const siteUrl = (process.env.VITE_SITE_URL || env.VITE_SITE_URL || '').replace(/\/+$/, '');
 const premiumEnabled = (process.env.VITE_PREMIUM_ENABLED || env.VITE_PREMIUM_ENABLED) === 'true';
-const maxMb = Number(process.env.VITE_MAX_FILE_MB || env.VITE_MAX_FILE_MB) || 20;
+const maxMb = Number(process.env.VITE_MAX_FILE_MB || env.VITE_MAX_FILE_MB) || 50;
 
 const LOCALES = ['es', 'en'];
 const DEFAULT_LOCALE = 'es';

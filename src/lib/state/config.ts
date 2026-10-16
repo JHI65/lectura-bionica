@@ -4,7 +4,7 @@ export const ADSENSE_CLIENT_PATTERN = /^ca-pub-\d{16}$/;
 export const ADSENSE_SLOT_PATTERN = /^\d{6,20}$/;
 
 /** Tamaño máximo por archivo, en MB. Único punto donde se define el límite. */
-export const DEFAULT_MAX_FILE_MB = 20;
+export const DEFAULT_MAX_FILE_MB = 50;
 
 function parseMaxMb(value: string | undefined): number {
   const parsed = Number(value);
@@ -12,8 +12,13 @@ function parseMaxMb(value: string | undefined): number {
 }
 
 /** Límites de Premium. Se aplican en el navegador: el archivo nunca llega a un servidor. */
-export const PREMIUM_MAX_FILE_MB = 100;
+export const PREMIUM_MAX_FILE_MB = parsePremiumMaxMb(import.meta.env.VITE_PREMIUM_MAX_FILE_MB);
 export const BATCH_MAX_FILES = 20;
+
+function parsePremiumMaxMb(value: string | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 300;
+}
 
 function parseTrialDays(value: string | undefined): number {
   if (value === undefined || value.trim() === '') return 7;

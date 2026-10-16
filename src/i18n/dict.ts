@@ -191,7 +191,7 @@ const es = {
     privacyLink: 'Leer la política de privacidad',
     premiumTitle: 'Premium: sin anuncios y con lotes',
     premiumBody: (price: string) =>
-      `Todas las funciones gratuitas, sin publicidad, archivos de hasta 100\u00a0MB y conversión por lotes. Desde ${price}, cancelable en cualquier momento.`,
+      `Todas las funciones gratuitas, sin publicidad, archivos de hasta 300\u00a0MB y conversión por lotes. Desde ${price}, cancelable en cualquier momento.`,
     premiumLink: 'Ver Premium',
   },
 

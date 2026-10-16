@@ -5,6 +5,7 @@ import { ConversionError } from '../src/lib/files/errors';
 import { parseDocument } from '../src/lib/convert';
 import { makeEpub, makeTextPdf, makeImageOnlyPdf } from './fixtures';
 import JSZip from 'jszip';
+import { config } from '../src/lib/state/config';
 
 const fileOf = (content: BlobPart[], name: string) => new File(content, name);
 
@@ -34,25 +35,25 @@ describe('validateFile', () => {
   });
 
   it('rechaza archivos que superan el tamaño máximo', async () => {
-    const big = new Uint8Array(21 * 1024 * 1024);
+    const big = new Uint8Array((config.maxFileMb + 1) * 1024 * 1024);
     big.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
     expect(await codeOf(validateFile(fileOf([big], 'enorme.pdf')))).toBe('FILE_TOO_LARGE');
   });
 
   it('el mensaje de tamaño indica el peso del archivo y el máximo permitido', async () => {
-    const big = new Uint8Array(21 * 1024 * 1024);
+    const big = new Uint8Array((config.maxFileMb + 1) * 1024 * 1024);
     big.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
     const error = await validateFile(fileOf([big], 'enorme.pdf')).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConversionError);
     // Los tamaños viajan como parámetros: cada idioma redacta el mensaje.
     const { code, params } = error as ConversionError;
     expect(code).toBe('FILE_TOO_LARGE');
-    expect(params.sizeBytes).toBe(21 * 1024 * 1024);
-    expect(params.maxBytes).toBe(20 * 1024 * 1024);
+    expect(params.sizeBytes).toBe((config.maxFileMb + 1) * 1024 * 1024);
+    expect(params.maxBytes).toBe(config.maxFileMb * 1024 * 1024);
   });
 
   it('un archivo justo en el límite se acepta', async () => {
-    const edge = new Uint8Array(20 * 1024 * 1024);
+    const edge = new Uint8Array(config.maxFileMb * 1024 * 1024);
     edge.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
     await expect(validateFile(fileOf([edge], 'limite.pdf'))).resolves.toEqual({ kind: 'pdf' });
   });

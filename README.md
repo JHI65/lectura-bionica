@@ -55,7 +55,7 @@ Decisiones relevantes:
 - **EPUB exportado.** Se conserva el ZIP original (mimetype primero y sin comprimir, recursos byte a byte). Solo cambian los capítulos y el OPF (se registra una hoja de estilo con la tipografía elegida). Antes de descargar, el resultado se reabre con JSZip y con epub.js; si algo falla, no se entrega.
 - **PDF exportado.** Es una reconstrucción A4 con negrita bionica real (fragmento en negrita y resto en normal). Las fuentes estándar solo cubren WinAnsi: el resto de caracteres se sustituye por `?` y se avisa.
 - **Premium nunca se decide en el cliente.** El estado sale de `entitlement`, que lee la tabla `subscriptions`. Esa tabla solo la escribe el webhook de Stripe tras verificar la firma. Nada de Premium se guarda en `localStorage`. Ante un error, los anuncios no se ocultan.
-- **Ventajas de Premium.** Quitar anuncios, archivos de hasta 100 MB y conversión por lotes (hasta 20 archivos, ZIP). Los límites se aplican en el navegador, porque los archivos nunca llegan a un servidor: son una comodidad, no una barrera de seguridad. Solo se activan con `status === 'premium'` confirmado por el backend.
+- **Ventajas de Premium.** Quitar anuncios, archivos de hasta 300 MB y conversión por lotes (hasta 20 archivos, ZIP). Los límites se aplican en el navegador, porque los archivos nunca llegan a un servidor: son una comodidad, no una barrera de seguridad. Solo se activan con `status === 'premium'` confirmado por el backend.
 - **Anuncios.** Política única en `src/lib/state/ads.ts`: sin consentimiento de publicidad no se carga **ningún** script de anuncios (ni «no personalizados»: en la UE también usan cookies y requieren consentimiento); Premium verificado nunca ve anuncios; sin identificadores válidos no hay anuncios en producción; en desarrollo aparece un placeholder marcado como tal. Hueco reservado de 280 px para evitar saltos de diseño, siempre fuera del texto leído y lejos de los controles.
 - **Analítica.** Solo con consentimiento y a un endpoint propio (`VITE_ANALYTICS_ENDPOINT`). Los parámetros pasan por una lista blanca: nunca nombres de archivo, texto ni contenido de libros.
 
@@ -95,7 +95,7 @@ Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
 | Variable | Obligatoria | Descripción |
 |---|---|---|
 | `VITE_SITE_URL` | En producción | URL pública sin barra final. Canonical, sitemap y URLs de retorno de Stripe |
-| `VITE_MAX_FILE_MB` | No | Tamaño máximo de archivo. Por defecto 20 |
+| `VITE_MAX_FILE_MB` | No | Tamaño máximo de archivo. Por defecto 50 |
 | `VITE_ADSENSE_CLIENT` | Para anuncios | Formato `ca-pub-` + 16 dígitos. Solo tras aprobación de AdSense |
 | `VITE_ADSENSE_SLOT` | Para anuncios | Identificador del bloque de anuncios (solo dígitos) |
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Para cuentas | Proyecto de Supabase |
@@ -103,6 +103,7 @@ Todas son públicas (`VITE_*`). Los secretos van solo en Supabase (ver abajo).
 | `VITE_BASE` | No | Ruta base si se sirve bajo un subdirectorio (p. ej. `/lectura-bionica/`). `npm run deploy:pages` la define |
 | `VITE_PREMIUM_PRICE_LABEL` | No | Precio mostrado. Por defecto `2,99 €/mes` |
 | `VITE_PREMIUM_YEARLY_PRICE_LABEL` | No | Precio anual mostrado. Por defecto `24,99 €/año` |
+| `VITE_PREMIUM_MAX_FILE_MB` | No | Tamaño máximo por archivo con Premium. Por defecto 300 |
 | `VITE_PREMIUM_TRIAL_DAYS` | No | Días de prueba anunciados (0 = sin prueba). Por defecto 7; igual que `STRIPE_TRIAL_DAYS` |
 | `VITE_ANALYTICS_ENDPOINT` | No | Endpoint propio de analítica |
 

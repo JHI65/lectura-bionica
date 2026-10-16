@@ -58,6 +58,11 @@ async function subscriptionIdFor(event: Stripe.Event): Promise<string | null> {
     return (object.mode === 'subscription' && typeof object.subscription === 'string') ? object.subscription : null;
   }
   if (event.type.startsWith('invoice.')) {
+    // Las versiones recientes de la API de Stripe mueven la suscripción de la factura a
+    // parent.subscription_details.subscription; las antiguas la dejan en `subscription`.
+    const parent = object.parent as { subscription_details?: { subscription?: unknown } } | null | undefined;
+    const fromParent = parent?.subscription_details?.subscription;
+    if (typeof fromParent === 'string') return fromParent;
     return typeof object.subscription === 'string' ? object.subscription : null;
   }
   return typeof object.id === 'string' ? object.id : null;
